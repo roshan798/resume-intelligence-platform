@@ -87,3 +87,30 @@
 - DOCX parser
 - LaTeX parser
 - Parsing pipeline orchestration
+
+
+## Resume Parsing Pipeline - 2026-07-16 23:05 IST
+
+### Summary
+- Added PDF parser.
+- Added DOCX parser.
+- Added LaTeX parser.
+- Implemented section detection.
+- Implemented keyword extraction.
+
+### Files Created
+- src/lib/parsing/parsers/*
+- src/lib/parsing/sectionizer/*
+- src/lib/parsing/keywords/*
+- src/lib/parsing/pipeline/*
+
+### Key Decisions
+- Parsing and matching separated into independent modules.
+- LaTeX parsing treated as first-class functionality.
+- Canonical taxonomy introduced for deterministic scoring.
+
+### Next Steps
+- JD parser
+- JD keyword extraction
+- Match scoring engine
+- Missing keyword detection

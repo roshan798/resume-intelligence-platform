@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma/prisma";
-
+import { Prisma } from "@/generated/prisma";
 export class ResumeRepository {
     async createResume(userId: string, title: string, primaryStack?: string) {
         return prisma.resume.create({
@@ -27,6 +27,28 @@ export class ResumeRepository {
                 canonicalKeywords: {},
                 fingerprintHash: "",
                 fileAssetId: data.fileAssetId,
+            },
+        });
+    }
+    async updateParsedData(
+        versionId: string,
+        parsed: {
+            rawText: string;
+            parsedSections: Prisma.InputJsonValue;
+            canonicalKeywords: Prisma.InputJsonValue;
+        },
+    ) {
+        return prisma.resumeVersion.update({
+            where: {
+                id: versionId,
+            },
+
+            data: {
+                rawText: parsed.rawText,
+
+                parsedSections: parsed.parsedSections,
+
+                canonicalKeywords: parsed.canonicalKeywords,
             },
         });
     }
