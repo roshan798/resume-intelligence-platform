@@ -4,10 +4,343 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  // Note: Database URL has been removed here to comply with Prisma v7. 
+  // Make sure it is passed into your `prisma.config.ts` file instead!
+}
+
+enum ResumeVersionStatus {
+  MASTER
+  TAILORED_DRAFT
+  FINAL
+  ARCHIVED
+}
+
+enum SourceFormat {
+  PDF
+  DOCX
+  LATEX
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  OA
+  INTERVIEW
+  REJECTED
+  OFFER
+  CLOSED
+}
+
+enum AIProvider {
+  GROQ
+  GEMINI
+  OPENAI
+  ANTHROPIC
+}
+
+enum AISuggestionStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+}
+
+enum AISuggestionType {
+  MISSING_KEYWORDS
+  REWRITE_BULLETS
+  SECTION_RECOMMENDATIONS
+  TAILORED_DRAFT
+  CHANGE_SUMMARY
+}
+
+enum StorageProvider {
+  SUPABASE
+  GOOGLE_DRIVE
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  resumes      Resume[]
+  jdAnalyses   JDAnalysis[]
+  applications Application[]
+  fileAssets   FileAsset[]
+  integrations Integration[]
+
+  @@map("users")
+}
+
+model Resume {
+  id           String   @id @default(uuid())
+  userId       String
+  title        String
+  primaryStack String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  versions ResumeVersion[]
+  tags     ResumeTag[]
+
+  @@index([userId, title])
+  @@map("resumes")
+}
+
+model ResumeVersion {
+  id              String @id @default(uuid())
+  resumeId         String
+  parentVersionId  String?
+
+  versionNumber Int
+
+  status ResumeVersionStatus
+
+  sourceFormat SourceFormat
+
+  rawText String @db.Text
+
+  latexSource String? @db.Text
+
+  parsedSections Json
+
+  canonicalKeywords Json
+
+  fingerprintHash String
+
+  fileAssetId String?
+
+  jdSnapshotId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resume Resume @relation(fields: [resumeId], references: [id])
+
+  parent ResumeVersion? @relation("ResumeVersionParent", fields: [parentVersionId], references: [id])
+
+  children ResumeVersion[] @relation("ResumeVersionParent")
+
+  fileAsset FileAsset? @relation(fields: [fileAssetId], references: [id])
+
+  jdSnapshot JDAnalysis? @relation(fields: [jdSnapshotId], references: [id])
+
+  matchResults MatchResult[]
+
+  aiSuggestions AISuggestion[]
+
+  applications Application[]
+
+  versionTags ResumeTag[]
+
+  @@index([resumeId, status])
+  @@index([resumeId, versionNumber])
+  @@map("resume_versions")
+}
+
+model ResumeTag {
+  id String @id @default(uuid())
+
+  resumeId String
+
+  tag String
+
+  scope String
+
+  resumeVersionId String?
+
+  resume Resume @relation(fields: [resumeId], references: [id])
+
+  version ResumeVersion? @relation(fields: [resumeVersionId], references: [id])
+
+  @@unique([resumeId, tag])
+  @@index([tag])
+  @@map("resume_tags")
+}
+
+model JDAnalysis {
+  id String @id @default(uuid())
+
+  userId String
+
+  rawText String @db.Text
+
+  company String?
+
+  roleTitle String?
+
+  parsedKeywords Json
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  matchResults MatchResult[]
+
+  resumeVersions ResumeVersion[]
+
+  applications Application[]
+
+  aiSuggestions AISuggestion[]
+
+  @@index([userId, createdAt])
+  @@map("jd_analyses")
+}
+
+model MatchResult {
+  id String @id @default(uuid())
+
+  jdAnalysisId String
+
+  resumeVersionId String
+
+  overallScore Decimal @db.Decimal(5, 2)
+
+  sectionScores Json
+
+  matchedKeywords Json
+
+  missingKeywords Json
+
+  weakKeywords Json
+
+  formattingHealth Json
+
+  createdAt DateTime @default(now())
+
+  jdAnalysis JDAnalysis @relation(fields: [jdAnalysisId], references: [id])
+
+  resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id])
+
+  @@index([jdAnalysisId, overallScore])
+  @@map("match_results")
+}
+
+model AISuggestion {
+  id String @id @default(uuid())
+
+  resumeVersionId String
+
+  jdAnalysisId String?
+
+  featureType AISuggestionType
+
+  inputPayload Json
+
+  outputPayload Json
+
+  status AISuggestionStatus
+
+  provider AIProvider
+
+  modelUsed String
+
+  createdAt DateTime @default(now())
+
+  resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id])
+
+  jdAnalysis JDAnalysis? @relation(fields: [jdAnalysisId], references: [id])
+
+  @@index([resumeVersionId, featureType])
+  @@map("ai_suggestions")
+}
+
+model Application {
+  id String @id @default(uuid())
+
+  userId String
+
+  jdAnalysisId String?
+
+  resumeVersionId String
+
+  company String
+
+  roleTitle String
+
+  status ApplicationStatus
+
+  appliedDate DateTime?
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  jdAnalysis JDAnalysis? @relation(fields: [jdAnalysisId], references: [id])
+
+  resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id])
+
+  history ApplicationStatusHistory[]
+
+  @@index([userId, status])
+  @@index([userId, company])
+  @@map("applications")
+}
+
+model ApplicationStatusHistory {
+  id String @id @default(uuid())
+
+  applicationId String
+
+  status ApplicationStatus
+
+  changedAt DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id])
+
+  @@map("application_status_history")
+}
+
+model FileAsset {
+  id String @id @default(uuid())
+
+  userId String
+
+  storageProvider StorageProvider
+
+  storageRef String
+
+  mimeType String
+
+  sizeBytes Int
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  resumeVersions ResumeVersion[]
+
+  @@map("file_assets")
+}
+
+model Integration {
+  id String @id @default(uuid())
+
+  userId String
+
+  provider String
+
+  accessToken String
+
+  refreshToken String
+
+  scopes String[]
+
+  connectedAt DateTime @default(now())
+
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("integrations")
 }

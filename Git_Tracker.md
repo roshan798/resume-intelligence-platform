@@ -35,3 +35,55 @@
 - Create Prisma schema.
 - Add database migrations.
 - Implement resume upload flow.
+
+
+## Database Schema Initialization - 2026-07-16 22:05 IST
+
+### Summary
+- Implemented complete Prisma schema.
+- Added version lineage support.
+- Added deterministic matching persistence.
+- Added AI provider persistence model.
+
+### Files Created
+- prisma/schema.prisma
+- src/lib/prisma/prisma.ts
+
+### Files Modified
+- package.json
+- .env
+
+### Key Decisions
+- JSONB used for parsed structures.
+- Parent-child resume version lineage implemented.
+- AI provider abstraction supported at DB level.
+
+### Next Steps
+- Resume upload API.
+- Supabase storage integration.
+- PDF/DOCX/TEX parsing pipeline.
+
+## Resume Upload Infrastructure - 2026-07-16 22:40 IST
+
+### Summary
+- Implemented Supabase storage abstraction.
+- Added resume upload service.
+- Added file asset persistence.
+- Added master version creation flow.
+
+### Files Created
+- src/lib/storage/*
+- src/modules/resumes/services/upload-resume.service.ts
+- src/modules/files/repositories/file-asset.repository.ts
+- src/app/api/resumes/upload/route.ts
+
+### Key Decisions
+- Supabase storage selected as default provider.
+- Upload process wrapped in transaction.
+- Resume upload automatically creates v1 master version.
+
+### Next Steps
+- PDF parser
+- DOCX parser
+- LaTeX parser
+- Parsing pipeline orchestration
