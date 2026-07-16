@@ -3,9 +3,9 @@ export interface GenerateTextResponse {
 
     provider: string;
 
-    model: string;
-
-    inputTokens: number;
-
-    outputTokens: number;
+    usage?: {
+        promptTokens?: number;
+        completionTokens?: number;
+        totalTokens?: number;
+    };
 }
