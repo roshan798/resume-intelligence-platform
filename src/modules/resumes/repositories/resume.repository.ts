@@ -68,4 +68,21 @@ export class ResumeRepository {
             },
         });
     }
+    async getActiveVersions(userId: string) {
+        return prisma.resumeVersion.findMany({
+            where: {
+                resume: {
+                    userId,
+                },
+
+                status: {
+                    not: "ARCHIVED",
+                },
+            },
+
+            include: {
+                resume: true,
+            },
+        });
+    }
 }

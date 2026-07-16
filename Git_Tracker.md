@@ -172,3 +172,54 @@
 - Match Results API
 - Match Results UI
 - Resume explanation panel
+
+
+## Match Results System - 2026-07-17
+
+### Summary
+- Added match module.
+- Added ranked match retrieval.
+- Added match results page.
+- Added match detail drawer structure.
+- Added formatting health architecture.
+
+### Files Created
+- src/modules/match/*
+- src/app/match-results/*
+- src/components/match/*
+- src/lib/matching/health/*
+
+### Key Decisions
+- Match results persisted after generation.
+- Match detail separated from list API.
+- Formatting health isolated from scoring engine.
+
+### Next Steps
+- Resume versioning
+- Application tracker
+- AI provider implementations
+
+## Resume Versioning - 2026-07-17
+
+### Summary
+- Implemented immutable versioning.
+- Added forking flow.
+- Added finalize lifecycle.
+- Added archive lifecycle.
+- Added lineage retrieval.
+
+### Files Created
+- dto/*
+- services/*
+- api/*
+- version-lineage-tree.tsx
+
+### Key Decisions
+- Versions never mutate once finalized.
+- Forking copies all parsed metadata.
+- Parent-child lineage preserved through parentVersionId.
+
+### Next Steps
+- Application tracker
+- AI draft generation
+- JD snapshot integration

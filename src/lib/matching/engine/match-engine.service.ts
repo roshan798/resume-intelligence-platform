@@ -10,7 +10,7 @@ interface JDKeyword {
 // Define the subset shape needed from your database ResumeVersion objects
 interface ResumeVersionInput {
     id: string;
-    canonicalKeywords: Prisma.JsonValue; // Prisma stores this as a JsonValue, we cast it inside the method
+    canonicalKeywords: Prisma.JsonValue; 
 }
 
 export class MatchEngineService {
