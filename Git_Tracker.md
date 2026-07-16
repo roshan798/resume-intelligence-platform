@@ -223,3 +223,29 @@
 - Application tracker
 - AI draft generation
 - JD snapshot integration
+
+## Draft Editing Workflow - 2026-07-17
+
+### Summary
+- Added editable draft lifecycle.
+- Added PATCH endpoint for draft versions.
+- Added version detail endpoint.
+- Added version detail page.
+
+### Files Created
+- update-draft-version.service.ts
+- api/resumes/versions/[id]/route.ts
+- version-card.tsx
+
+### Files Modified
+- resume-version.repository.ts
+
+### Key Decisions
+- Only `tailored_draft` versions can be edited.
+- Final versions are immutable.
+- Archive and finalize are state transitions only.
+
+### Next Steps
+- Application Tracker module.
+- Status history support.
+- Dashboard widgets.

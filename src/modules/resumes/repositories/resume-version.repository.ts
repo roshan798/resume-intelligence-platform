@@ -58,4 +58,13 @@ export class ResumeVersionRepository {
             },
         });
     }
+    async updateDraft(id: string, data) {
+        return prisma.resumeVersion.update({
+            where: {
+                id,
+            },
+
+            data,
+        });
+    }
 }
