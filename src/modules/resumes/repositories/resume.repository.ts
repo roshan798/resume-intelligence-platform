@@ -52,4 +52,20 @@ export class ResumeRepository {
             },
         });
     }
+    async createMatchResult(data: {
+        jdAnalysisId: string;
+        resumeVersionId: string;
+        overallScore: number;
+        matchedKeywords: string[];
+        missingKeywords: string[];
+        weakKeywords: string[];
+    }) {
+        return prisma.matchResult.create({
+            data: {
+                ...data,
+                sectionScores: {},
+                formattingHealth: {},
+            },
+        });
+    }
 }

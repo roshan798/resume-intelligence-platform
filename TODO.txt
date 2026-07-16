@@ -1,0 +1,35 @@
+
+src/lib/matching/similarity/duplicate-detector.service.ts
+Flow becomes:
+
+Upload
+↓
+Extract text
+↓
+Extract keywords
+↓
+Load existing resume keywords
+↓
+Duplicate detector
+↓
+Return warning if duplicates found
+↓
+Persist resume
+Example
+const duplicateDetector =
+  new DuplicateDetectorService();
+
+const duplicates =
+  duplicateDetector.detect(
+    extractedKeywords,
+    existingResumeKeywords,
+  );
+
+if (duplicates.length > 0) {
+  logger.warn(
+    {
+      duplicates,
+    },
+    "Potential duplicate resumes detected",
+  );
+}

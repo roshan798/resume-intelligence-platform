@@ -114,3 +114,31 @@
 - JD keyword extraction
 - Match scoring engine
 - Missing keyword detection
+
+## Deterministic Matching Engine - 2026-07-16 23:45 IST
+
+### Summary
+- Implemented JD parsing.
+- Added deterministic scoring engine.
+- Added weak keyword detection.
+- Added missing keyword detection.
+- Added confidence scoring.
+- Added resume similarity detection.
+
+### Files Created
+- src/lib/matching/*
+- src/lib/matching/scoring/*
+- src/lib/matching/jd/*
+- src/lib/matching/engine/*
+
+### Key Decisions
+- Scoring remains entirely deterministic.
+- AI does not influence scores.
+- Section weighting introduced for explainability.
+
+### Next Steps
+- Match results API
+- Match results UI
+- Resume explanation panel
+- Application tracker
+- Application tracker
