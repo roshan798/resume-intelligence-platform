@@ -1,5 +1,5 @@
 export interface EmbeddingResultDto {
-    vector: number[];
+    embedding: number[];
     dimensions: number;
     provider: string;
     model: string;

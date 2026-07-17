@@ -161,3 +161,17 @@
 - Add drag-and-drop support in Kanban.
 - Add OAuth integrations.
 - Expand hybrid ATS + semantic scoring.
+
+## Semantic Search
+
+### Added
+- pgvector similarity search
+- Similar resume search
+- Similar JD search
+- Resume recommendation engine
+
+### Features unlocked
+- Best resume recommendation
+- Resume reuse detection
+- Similar job discovery
+- Resume clustering
