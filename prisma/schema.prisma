@@ -1,9 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"] // 1. Enable preview feature
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [pgvector(map: "vector")] // 2. Declare the extension
 }
 
 enum ResumeVersionStatus {
@@ -120,6 +122,7 @@ model ResumeVersion {
   fileAssetId String?
 
   jdSnapshotId String?
+  embedding    Unsupported("vector(1536)")?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -181,6 +184,7 @@ model JDAnalysis {
   roleTitle String?
 
   parsedKeywords Json
+  embedding      Unsupported("vector(1536)")?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
