@@ -299,3 +299,25 @@
 - Enables semantic similarity scoring
 - Supports future vector database integration
 - Foundation for RAG and AI recommendations
+
+
+## 2026-07-18
+
+### Added
+- Dashboard module
+- Dashboard stats API
+- Application status history support
+- Kanban board service
+- Application movement API
+- Kanban frontend components
+
+### Next
+- Drag and drop support
+- Semantic resume search
+- Vector similarity search
+- OAuth integrations
+
+### Fixed
+- Removed explicit `any` from KanbanBoard component.
+- Added strongly typed `KanbanBoardDto`.
+- Added support for CLOSED application status column.
