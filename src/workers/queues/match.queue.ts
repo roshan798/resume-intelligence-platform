@@ -1,7 +1,3 @@
-import { Queue } from "bullmq";
+import { createQueue } from "../config/bullmq";
 
-import { redisConfig } from "./redis";
-
-export const matchQueue = new Queue("match-processing", {
-    connection: redisConfig,
-});
+export const matchQueue = createQueue("match");

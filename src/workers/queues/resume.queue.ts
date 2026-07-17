@@ -1,7 +1,3 @@
-import { Queue } from "bullmq";
+import { createQueue } from "../config/bullmq";
 
-import { redisConfig } from "./redis";
-
-export const resumeQueue = new Queue("resume-processing", {
-    connection: redisConfig,
-});
+export const resumeQueue = createQueue("resume");

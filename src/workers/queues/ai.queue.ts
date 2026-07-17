@@ -1,7 +1,3 @@
-import { Queue } from "bullmq";
+import { createQueue } from "../config/bullmq";
 
-import { redisConfig } from "./redis";
-
-export const aiQueue = new Queue("ai-processing", {
-    connection: redisConfig,
-});
+export const aiQueue = createQueue("ai");

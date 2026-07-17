@@ -66,16 +66,31 @@ enum IntegrationProvider {
   GOOGLE_DRIVE
 }
 
+enum BackgroundJobType {
+  PARSE_RESUME
+  GENERATE_EMBEDDING
+  MATCH_RESUME
+  GENERATE_AI
+}
+
+enum BackgroundJobStatus {
+  QUEUED
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   createdAt DateTime @default(now())
 
-  resumes      Resume[]
-  jdAnalyses   JDAnalysis[]
-  applications Application[]
-  fileAssets   FileAsset[]
-  integrations Integration[]
+  resumes        Resume[]
+  jdAnalyses     JDAnalysis[]
+  applications   Application[]
+  fileAssets     FileAsset[]
+  integrations   Integration[]
+  backgroundJobs BackgroundJob[]
 
   @@map("users")
 }
@@ -361,4 +376,39 @@ model Integration {
 
   @@unique([userId, provider])
   @@map("integrations")
+}
+
+model BackgroundJob {
+  id String @id @default(uuid())
+
+  userId String
+
+  type BackgroundJobType
+
+  status BackgroundJobStatus @default(QUEUED)
+
+  queueJobId String?
+
+  progress Int @default(0)
+
+  payload Json
+
+  result Json?
+
+  error String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  startedAt DateTime?
+
+  completedAt DateTime?
+
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@map("background_jobs")
 }
