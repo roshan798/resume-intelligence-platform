@@ -249,3 +249,24 @@
 - Application Tracker module.
 - Status history support.
 - Dashboard widgets.
+
+
+---some thing missed
+
+## 2026-07-18
+
+### Completed
+- Added Match Results UI
+- Added Formatting Health Engine
+- Implemented Resume Versioning APIs
+- Added Resume Lineage Tree
+- Implemented Application Tracking Domain
+- Added AI Provider Abstraction Layer
+- Added AI Suggestion APIs
+- Hardened Prisma schema and relations
+
+### Next
+- BullMQ Queue System
+- Background Resume Processing
+- Background AI Generation
+- Background Match Processing
