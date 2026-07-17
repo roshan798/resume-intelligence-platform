@@ -270,3 +270,32 @@
 - Background Resume Processing
 - Background AI Generation
 - Background Match Processing
+
+## 2026-07-18
+
+### Added
+- BullMQ queue infrastructure
+- Resume workers
+- Match workers
+- AI workers
+
+### Planned
+- pgvector support
+- Embedding generation
+- Semantic matching
+- Hybrid ATS scoring
+
+## 2026-07-18
+
+### Added
+- Embedding provider abstraction
+- OpenAI embedding provider
+- Gemini embedding provider
+- Resume embedding generation service
+- JD embedding generation service
+- Semantic matching service using cosine similarity
+
+### Impact
+- Enables semantic similarity scoring
+- Supports future vector database integration
+- Foundation for RAG and AI recommendations
