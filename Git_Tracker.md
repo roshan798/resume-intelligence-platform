@@ -1,323 +1,163 @@
 ## Project Bootstrap - 2026-07-16 21:30 IST
 
 ### Summary
-
-- Initialized Next.js application.
-- Added Prisma integration.
-- Added Supabase integration.
-- Added configuration validation.
-- Added structured logging.
-- Added AI provider abstraction interfaces.
+- Initialized Next.js app with Prisma and Supabase.
+- Added config validation, structured logging, and AI provider abstractions.
+- Established core project foundations and startup safety checks.
 
 ### Files Created
-
-- src/lib/config/\*
-- src/lib/logger/\*
-- src/lib/prisma/\*
-- src/lib/supabase/\*
-- src/modules/ai/\*
-- Git_Tracker.md
+- `src/lib/config/*`
+- `src/lib/logger/*`
+- `src/lib/prisma/*`
+- `src/lib/supabase/*`
+- `src/modules/ai/*`
+- `Git_Tracker.md`
 
 ### Files Modified
-
-- package.json
-- .env
+- `package.json`
+- `.env`
 
 ### Key Decisions
-
-- Supabase selected for auth, storage and database.
-- Prisma selected as ORM.
+- Supabase chosen for auth, storage, and database.
+- Prisma chosen as ORM.
 - AI providers abstracted behind interfaces.
-- Configuration must fail fast on startup.
+- App must fail fast on invalid config.
 
 ### Next Steps
-
-- Create Prisma schema.
-- Add database migrations.
-- Implement resume upload flow.
+- Add Prisma schema and migrations.
+- Build resume upload flow.
 
 
-## Database Schema Initialization - 2026-07-16 22:05 IST
+## Database and Resume Ingestion - 2026-07-16 22:05 to 23:05 IST
 
 ### Summary
-- Implemented complete Prisma schema.
-- Added version lineage support.
-- Added deterministic matching persistence.
-- Added AI provider persistence model.
+- Implemented full Prisma schema with resume version lineage and AI persistence support.
+- Built resume upload infrastructure with Supabase storage abstraction and file asset persistence.
+- Added parsing pipeline for PDF, DOCX, and LaTeX resumes.
+- Implemented section detection and keyword extraction.
 
 ### Files Created
-- prisma/schema.prisma
-- src/lib/prisma/prisma.ts
+- `prisma/schema.prisma`
+- `src/lib/prisma/prisma.ts`
+- `src/lib/storage/*`
+- `src/modules/resumes/services/upload-resume.service.ts`
+- `src/modules/files/repositories/file-asset.repository.ts`
+- `src/app/api/resumes/upload/route.ts`
+- `src/lib/parsing/parsers/*`
+- `src/lib/parsing/sectionizer/*`
+- `src/lib/parsing/keywords/*`
+- `src/lib/parsing/pipeline/*`
 
 ### Files Modified
-- package.json
-- .env
+- `package.json`
+- `.env`
 
 ### Key Decisions
 - JSONB used for parsed structures.
-- Parent-child resume version lineage implemented.
-- AI provider abstraction supported at DB level.
-
-### Next Steps
-- Resume upload API.
-- Supabase storage integration.
-- PDF/DOCX/TEX parsing pipeline.
-
-## Resume Upload Infrastructure - 2026-07-16 22:40 IST
-
-### Summary
-- Implemented Supabase storage abstraction.
-- Added resume upload service.
-- Added file asset persistence.
-- Added master version creation flow.
-
-### Files Created
-- src/lib/storage/*
-- src/modules/resumes/services/upload-resume.service.ts
-- src/modules/files/repositories/file-asset.repository.ts
-- src/app/api/resumes/upload/route.ts
-
-### Key Decisions
-- Supabase storage selected as default provider.
-- Upload process wrapped in transaction.
-- Resume upload automatically creates v1 master version.
-
-### Next Steps
-- PDF parser
-- DOCX parser
-- LaTeX parser
-- Parsing pipeline orchestration
-
-
-## Resume Parsing Pipeline - 2026-07-16 23:05 IST
-
-### Summary
-- Added PDF parser.
-- Added DOCX parser.
-- Added LaTeX parser.
-- Implemented section detection.
-- Implemented keyword extraction.
-
-### Files Created
-- src/lib/parsing/parsers/*
-- src/lib/parsing/sectionizer/*
-- src/lib/parsing/keywords/*
-- src/lib/parsing/pipeline/*
-
-### Key Decisions
-- Parsing and matching separated into independent modules.
+- Upload flow wrapped in a transaction.
+- Resume upload automatically creates `v1` master version.
 - LaTeX parsing treated as first-class functionality.
-- Canonical taxonomy introduced for deterministic scoring.
+- Parsing and matching kept as separate modules.
 
 ### Next Steps
-- JD parser
-- JD keyword extraction
-- Match scoring engine
-- Missing keyword detection
+- Add JD parsing and keyword extraction.
+- Build deterministic scoring engine.
 
-## Deterministic Matching Engine - 2026-07-16 23:45 IST
 
-### Summary
-- Implemented JD parsing.
-- Added deterministic scoring engine.
-- Added weak keyword detection.
-- Added missing keyword detection.
-- Added confidence scoring.
-- Added resume similarity detection.
-
-### Files Created
-- src/lib/matching/*
-- src/lib/matching/scoring/*
-- src/lib/matching/jd/*
-- src/lib/matching/engine/*
-
-### Key Decisions
-- Scoring remains entirely deterministic.
-- AI does not influence scores.
-- Section weighting introduced for explainability.
-
-### Next Steps
-- Match results API
-- Match results UI
-- Resume explanation panel
-- Application tracker
-- Application tracker
-
-## Foundation Modules - 2026-07-17 00:15 IST
+## Matching and Core Foundations - 2026-07-16 23:45 to 2026-07-17 00:15 IST
 
 ### Summary
-- Added shared enums.
-- Added application errors.
-- Added API response contracts.
-- Added AI provider abstraction.
-- Added config modules.
-- Added application module bootstrap.
-- Added auth module bootstrap.
-- Added worker infrastructure.
+- Implemented JD parsing, deterministic scoring, missing/weak keyword detection, confidence scoring, and resume similarity detection.
+- Added shared enums, application errors, API contracts, app/auth bootstrap, worker scaffolding, and AI provider factory setup.
 
 ### Files Created
-- src/shared/*
-- src/lib/ai/*
-- src/modules/applications/*
-- src/modules/auth/*
-- src/workers/*
-- src/lib/config/*
+- `src/lib/matching/*`
+- `src/lib/matching/scoring/*`
+- `src/lib/matching/jd/*`
+- `src/lib/matching/engine/*`
+- `src/shared/*`
+- `src/lib/ai/*`
+- `src/modules/applications/*`
+- `src/modules/auth/*`
+- `src/workers/*`
+- `src/lib/config/*`
 
 ### Key Decisions
-- AI providers implemented behind factory pattern.
+- Scoring remains fully deterministic.
+- AI does not influence scoring.
+- Section weighting added for explainability.
 - Shared enums replace magic strings.
-- Workers introduced before queue implementation.
+- Workers added early before full queue integration.
 
 ### Next Steps
-- Match Results API
-- Match Results UI
-- Resume explanation panel
+- Build match APIs and UI.
+- Add explanation panel and application tracker.
 
 
-## Match Results System - 2026-07-17
+## Match Results and Versioning - 2026-07-17
 
 ### Summary
-- Added match module.
-- Added ranked match retrieval.
-- Added match results page.
-- Added match detail drawer structure.
+- Added match module, ranked match retrieval, match results page, and match detail drawer.
 - Added formatting health architecture.
+- Implemented immutable resume versioning with forking, finalize, archive, and lineage retrieval.
+- Added editable draft workflow, PATCH endpoint, version detail endpoint, and version detail page.
 
 ### Files Created
-- src/modules/match/*
-- src/app/match-results/*
-- src/components/match/*
-- src/lib/matching/health/*
-
-### Key Decisions
-- Match results persisted after generation.
-- Match detail separated from list API.
-- Formatting health isolated from scoring engine.
-
-### Next Steps
-- Resume versioning
-- Application tracker
-- AI provider implementations
-
-## Resume Versioning - 2026-07-17
-
-### Summary
-- Implemented immutable versioning.
-- Added forking flow.
-- Added finalize lifecycle.
-- Added archive lifecycle.
-- Added lineage retrieval.
-
-### Files Created
-- dto/*
-- services/*
-- api/*
-- version-lineage-tree.tsx
-
-### Key Decisions
-- Versions never mutate once finalized.
-- Forking copies all parsed metadata.
-- Parent-child lineage preserved through parentVersionId.
-
-### Next Steps
-- Application tracker
-- AI draft generation
-- JD snapshot integration
-
-## Draft Editing Workflow - 2026-07-17
-
-### Summary
-- Added editable draft lifecycle.
-- Added PATCH endpoint for draft versions.
-- Added version detail endpoint.
-- Added version detail page.
-
-### Files Created
-- update-draft-version.service.ts
-- api/resumes/versions/[id]/route.ts
-- version-card.tsx
+- `src/modules/match/*`
+- `src/app/match-results/*`
+- `src/components/match/*`
+- `src/lib/matching/health/*`
+- `dto/*`
+- `services/*`
+- `api/*`
+- `version-lineage-tree.tsx`
+- `update-draft-version.service.ts`
+- `api/resumes/versions/[id]/route.ts`
+- `version-card.tsx`
 
 ### Files Modified
-- resume-version.repository.ts
+- `resume-version.repository.ts`
 
 ### Key Decisions
-- Only `tailored_draft` versions can be edited.
-- Final versions are immutable.
-- Archive and finalize are state transitions only.
+- Match results are persisted after generation.
+- Formatting health is isolated from scoring.
+- Versions never mutate once finalized.
+- Forking copies parsed metadata.
+- Only `tailored_draft` versions are editable.
 
 ### Next Steps
-- Application Tracker module.
-- Status history support.
-- Dashboard widgets.
+- Add JD snapshot integration.
+- Build application tracker and AI draft generation.
 
 
----some thing missed
+## Platform Expansion - 2026-07-18
 
-## 2026-07-18
+### Summary
+- Added Application Tracking domain and related APIs.
+- Added AI suggestion APIs and hardened Prisma relations.
+- Added BullMQ queue infrastructure with resume, match, and AI workers.
+- Added embedding provider abstraction with OpenAI and Gemini support.
+- Added semantic matching via cosine similarity.
+- Added dashboard module, stats API, status history, Kanban services, and Kanban UI.
+- Added semantic search, similar resume/JD search, and recommendation engine.
 
-### Completed
-- Added Match Results UI
-- Added Formatting Health Engine
-- Implemented Resume Versioning APIs
-- Added Resume Lineage Tree
-- Implemented Application Tracking Domain
-- Added AI Provider Abstraction Layer
-- Added AI Suggestion APIs
-- Hardened Prisma schema and relations
+### Key Decisions
+- Queue-based background processing introduced for scalability.
+- Embedding providers abstracted similarly to AI providers.
+- Semantic matching added as an enhancement layer.
+- CLOSED application status supported in Kanban.
+- Strong typing improved in Kanban components.
 
-### Next
-- BullMQ Queue System
-- Background Resume Processing
-- Background AI Generation
-- Background Match Processing
+### Features Unlocked
+- Background resume, match, and AI processing.
+- Semantic similarity scoring.
+- Resume reuse detection.
+- Similar JD discovery.
+- Resume recommendations and clustering.
+- Dashboard and application movement workflows.
 
-## 2026-07-18
-
-### Added
-- BullMQ queue infrastructure
-- Resume workers
-- Match workers
-- AI workers
-
-### Planned
-- pgvector support
-- Embedding generation
-- Semantic matching
-- Hybrid ATS scoring
-
-## 2026-07-18
-
-### Added
-- Embedding provider abstraction
-- OpenAI embedding provider
-- Gemini embedding provider
-- Resume embedding generation service
-- JD embedding generation service
-- Semantic matching service using cosine similarity
-
-### Impact
-- Enables semantic similarity scoring
-- Supports future vector database integration
-- Foundation for RAG and AI recommendations
-
-
-## 2026-07-18
-
-### Added
-- Dashboard module
-- Dashboard stats API
-- Application status history support
-- Kanban board service
-- Application movement API
-- Kanban frontend components
-
-### Next
-- Drag and drop support
-- Semantic resume search
-- Vector similarity search
-- OAuth integrations
-
-### Fixed
-- Removed explicit `any` from KanbanBoard component.
-- Added strongly typed `KanbanBoardDto`.
-- Added support for CLOSED application status column.
+### Next Steps
+- Add pgvector-backed search refinement.
+- Add drag-and-drop support in Kanban.
+- Add OAuth integrations.
+- Expand hybrid ATS + semantic scoring.
