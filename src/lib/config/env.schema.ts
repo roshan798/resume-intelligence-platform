@@ -28,9 +28,10 @@ export const envSchema = z.object({
     AI_RETRY_COUNT: z.number().min(1),
 
     GROQ_API_KEY: z.string().optional(),
+    GROQ_MODEL: z.string().optional(),
 
     GEMINI_API_KEY: z.string().optional(),
-
+    GEMINI_MODEL: z.string().optional(),
     OPENAI_API_KEY: z.string().optional(),
 
     ANTHROPIC_API_KEY: z.string().optional(),

@@ -1,9 +1,13 @@
 import { Config as env } from "./index";
 
 export const AIConfig = {
-    defaultProvider: env.AI_DEFAULT_PROVIDER,
+    groq: {
+        apiKey: env.GROQ_API_KEY,
+        model: env.GROQ_MODEL,
+    },
 
-    timeoutMs: env.AI_TIMEOUT_MS,
-
-    retryCount: env.AI_RETRY_COUNT,
+    gemini: {
+        apiKey: env.GEMINI_API_KEY,
+        model: env.GEMINI_MODEL,
+    },
 };

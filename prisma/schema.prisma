@@ -1,16 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  // Note: Database URL has been removed here to comply with Prisma v7. 
-  // Make sure it is passed into your `prisma.config.ts` file instead!
 }
 
 enum ResumeVersionStatus {
@@ -62,6 +55,15 @@ enum StorageProvider {
   GOOGLE_DRIVE
 }
 
+enum ResumeTagScope {
+  RESUME
+  VERSION
+}
+
+enum IntegrationProvider {
+  GOOGLE_DRIVE
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -84,19 +86,20 @@ model Resume {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   versions ResumeVersion[]
   tags     ResumeTag[]
 
   @@index([userId, title])
+  @@index([userId])
   @@map("resumes")
 }
 
 model ResumeVersion {
-  id              String @id @default(uuid())
-  resumeId         String
-  parentVersionId  String?
+  id              String  @id @default(uuid())
+  resumeId        String
+  parentVersionId String?
 
   versionNumber Int
 
@@ -121,15 +124,15 @@ model ResumeVersion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  resume Resume @relation(fields: [resumeId], references: [id])
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 
-  parent ResumeVersion? @relation("ResumeVersionParent", fields: [parentVersionId], references: [id])
+  parent ResumeVersion? @relation("ResumeVersionParent", fields: [parentVersionId], references: [id], onDelete: SetNull)
 
   children ResumeVersion[] @relation("ResumeVersionParent")
 
-  fileAsset FileAsset? @relation(fields: [fileAssetId], references: [id])
+  fileAsset FileAsset? @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
 
-  jdSnapshot JDAnalysis? @relation(fields: [jdSnapshotId], references: [id])
+  jdSnapshot JDAnalysis? @relation(fields: [jdSnapshotId], references: [id], onDelete: SetNull)
 
   matchResults MatchResult[]
 
@@ -139,6 +142,9 @@ model ResumeVersion {
 
   versionTags ResumeTag[]
 
+  @@index([resumeId])
+  @@index([parentVersionId])
+  @@index([jdSnapshotId])
   @@index([resumeId, status])
   @@index([resumeId, versionNumber])
   @@map("resume_versions")
@@ -151,16 +157,15 @@ model ResumeTag {
 
   tag String
 
-  scope String
+  scope ResumeTagScope
 
   resumeVersionId String?
+  resume          Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  version         ResumeVersion? @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
 
-  resume Resume @relation(fields: [resumeId], references: [id])
-
-  version ResumeVersion? @relation(fields: [resumeVersionId], references: [id])
-
-  @@unique([resumeId, tag])
+  @@unique([resumeId, tag, resumeVersionId])
   @@index([tag])
+  @@index([resumeId])
   @@map("resume_tags")
 }
 
@@ -178,8 +183,9 @@ model JDAnalysis {
   parsedKeywords Json
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   matchResults MatchResult[]
 
@@ -190,6 +196,8 @@ model JDAnalysis {
   aiSuggestions AISuggestion[]
 
   @@index([userId, createdAt])
+  @@index([company])
+  @@index([roleTitle])
   @@map("jd_analyses")
 }
 
@@ -212,13 +220,13 @@ model MatchResult {
 
   formattingHealth Json
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime   @default(now())
+  jdAnalysis JDAnalysis @relation(fields: [jdAnalysisId], references: [id], onDelete: Cascade)
 
-  jdAnalysis JDAnalysis @relation(fields: [jdAnalysisId], references: [id])
-
-  resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id])
+  resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
 
   @@index([jdAnalysisId, overallScore])
+  @@index([resumeVersionId])
   @@map("match_results")
 }
 
@@ -243,10 +251,12 @@ model AISuggestion {
 
   createdAt DateTime @default(now())
 
-  resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id])
+  resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
 
-  jdAnalysis JDAnalysis? @relation(fields: [jdAnalysisId], references: [id])
+  jdAnalysis JDAnalysis? @relation(fields: [jdAnalysisId], references: [id], onDelete: SetNull)
 
+  @@index([provider])
+  @@index([resumeVersionId])
   @@index([resumeVersionId, featureType])
   @@map("ai_suggestions")
 }
@@ -274,16 +284,18 @@ model Application {
 
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  jdAnalysis JDAnalysis? @relation(fields: [jdAnalysisId], references: [id])
+  jdAnalysis JDAnalysis? @relation(fields: [jdAnalysisId], references: [id], onDelete: SetNull)
 
-  resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id])
+  resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
 
   history ApplicationStatusHistory[]
 
   @@index([userId, status])
   @@index([userId, company])
+  @@index([userId, createdAt])
+  @@index([resumeVersionId])
   @@map("applications")
 }
 
@@ -296,8 +308,9 @@ model ApplicationStatusHistory {
 
   changedAt DateTime @default(now())
 
-  application Application @relation(fields: [applicationId], references: [id])
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
+  @@index([applicationId])
   @@map("application_status_history")
 }
 
@@ -315,11 +328,11 @@ model FileAsset {
   sizeBytes Int
 
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   resumeVersions ResumeVersion[]
 
+  @@index([userId])
   @@map("file_assets")
 }
 
@@ -328,7 +341,7 @@ model Integration {
 
   userId String
 
-  provider String
+  provider IntegrationProvider
 
   accessToken String
 
@@ -340,7 +353,8 @@ model Integration {
 
   expiresAt DateTime
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, provider])
   @@map("integrations")
 }

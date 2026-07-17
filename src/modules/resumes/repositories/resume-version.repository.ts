@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma/prisma";
+
 export class ResumeVersionRepository {
     async getActiveVersions(userId: string) {
         return prisma.resumeVersion.findMany({
@@ -58,12 +59,12 @@ export class ResumeVersionRepository {
             },
         });
     }
-    async updateDraft(id: string, data) {
+
+    async updateDraft(id: string, data: Prisma.ResumeVersionUncheckedUpdateInput) {
         return prisma.resumeVersion.update({
             where: {
                 id,
             },
-
             data,
         });
     }

@@ -1,22 +1,38 @@
+import { GoogleGenAI } from "@google/genai";
+
 import { AIProvider } from "./ai-provider";
+
 import { GenerateTextRequest } from "../types/generate-text-request";
 import { GenerateTextResponse } from "../types/generate-text-response";
 
+import { AIConfig } from "@/lib/config/ai.config";
+
 export class GeminiProvider implements AIProvider {
+    private client = new GoogleGenAI({
+        apiKey: AIConfig.gemini.apiKey,
+    });
+
     async generateText(
         request: GenerateTextRequest,
     ): Promise<GenerateTextResponse> {
-        // Simulating minor processing delay
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        const response = await this.client.models.generateContent({
+            model: AIConfig.gemini.model!,
+
+            contents: request.prompt,
+
+            config: {
+                temperature: request.temperature ?? 0.2,
+
+                maxOutputTokens: request.maxTokens ?? 4096,
+
+                systemInstruction: request.systemPrompt,
+            },
+        });
 
         return {
-            text: `[Gemini Mock Response] Based on your prompt: "${request.prompt.substring(0, 30)}...", here is the structured resume analysis payload text.`,
+            text: response.text ?? "",
             provider: "GEMINI",
-            usage: {
-                promptTokens: 120,
-                completionTokens: 250,
-                totalTokens: 370,
-            },
+            model: AIConfig.gemini.model!,
         };
     }
 }

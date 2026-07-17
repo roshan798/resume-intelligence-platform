@@ -3,9 +3,11 @@ export interface GenerateTextResponse {
 
     provider: string;
 
+    model: string;
+
     usage?: {
-        promptTokens?: number;
-        completionTokens?: number;
-        totalTokens?: number;
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
     };
 }
