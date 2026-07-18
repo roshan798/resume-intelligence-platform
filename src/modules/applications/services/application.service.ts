@@ -1,5 +1,5 @@
 import { ApplicationRepository } from "../repositories/application.repository";
-import { Prisma } from "@/generated/prisma";
+import { Prisma } from "@prisma/client";
 export class ApplicationService {
     private repository = new ApplicationRepository();
 

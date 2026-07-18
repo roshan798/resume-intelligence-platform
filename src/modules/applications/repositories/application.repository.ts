@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/prisma";
-import { ApplicationStatus } from "@prisma/client";
+import { ApplicationStatus, Prisma } from "@prisma/client";
 
 export class ApplicationRepository {
     async create(data: Prisma.ApplicationUncheckedCreateInput) {
