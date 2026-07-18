@@ -1,10 +1,8 @@
-import { ApplicationStatus } from "@prisma/client";
-
-import { prisma } from "@/lib/prisma/prisma";
+import { prisma } from "@/lib/prisma";
 
 export class DashboardRepository {
     async getStats(userId: string) {
-        const [resumes, applications, jdAnalyses, matchResults] =
+        const [totalResumes, totalApplications, interviews, matches] =
             await Promise.all([
                 prisma.resume.count({
                     where: {
@@ -12,77 +10,67 @@ export class DashboardRepository {
                     },
                 }),
 
-                prisma.application.findMany({
+                prisma.application.count({
                     where: {
                         userId,
                     },
                 }),
 
-                prisma.jDAnalysis.count({
+                prisma.application.count({
                     where: {
                         userId,
+                        status: "INTERVIEW",
                     },
                 }),
 
                 prisma.matchResult.findMany({
                     where: {
-                        jdAnalysis: {
-                            userId,
+                        resumeVersion: {
+                            resume: {
+                                userId,
+                            },
                         },
                     },
-                    include: {
-                        jdAnalysis: true,
+                    select: {
+                        overallScore: true,
                     },
                 }),
             ]);
 
-        const byStatus = {
-            saved: applications.filter(
-                (a) => a.status === ApplicationStatus.SAVED,
-            ).length,
-
-            applied: applications.filter(
-                (a) => a.status === ApplicationStatus.APPLIED,
-            ).length,
-
-            oa: applications.filter((a) => a.status === ApplicationStatus.OA)
-                .length,
-
-            interview: applications.filter(
-                (a) => a.status === ApplicationStatus.INTERVIEW,
-            ).length,
-
-            rejected: applications.filter(
-                (a) => a.status === ApplicationStatus.REJECTED,
-            ).length,
-
-            offer: applications.filter(
-                (a) => a.status === ApplicationStatus.OFFER,
-            ).length,
-        };
-
-        const avgScore =
-            matchResults.length === 0
+        const averageMatchScore =
+            matches.length === 0
                 ? 0
-                : matchResults.reduce(
-                      (sum, item) => sum + Number(item.overallScore),
-                      0,
-                  ) / matchResults.length;
-
-        const bestMatch =
-            matchResults.length === 0
-                ? null
-                : matchResults.sort(
-                      (a, b) => Number(b.overallScore) - Number(a.overallScore),
-                  )[0];
+                : Number(
+                      (
+                          matches.reduce(
+                              (sum, item) => sum + Number(item.overallScore),
+                              0,
+                          ) / matches.length
+                      ).toFixed(2),
+                  );
 
         return {
-            resumes,
-            applications,
-            jdAnalyses,
-            byStatus,
-            avgScore,
-            bestMatch,
+            totalResumes,
+            totalApplications,
+            totalInterviews: interviews,
+            averageMatchScore,
         };
+    }
+
+    async getRecentResumes(userId: string) {
+        return prisma.resumeVersion.findMany({
+            where: {
+                resume: {
+                    userId,
+                },
+            },
+            include: {
+                resume: true,
+            },
+            orderBy: {
+                updatedAt: "desc",
+            },
+            take: 5,
+        });
     }
 }

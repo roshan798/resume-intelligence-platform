@@ -175,3 +175,14 @@
 - Resume reuse detection
 - Similar job discovery
 - Resume clustering
+
+## Dashboard Foundation
+
+- Added dashboard module
+- Added dashboard repository
+- Added dashboard service
+- Added dashboard API endpoint
+- Added dashboard page
+- Added dashboard header component
+- Added reusable stat card component
+- Added dashboard statistics grid

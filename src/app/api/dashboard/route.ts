@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
+import { DashboardService } from "@/modules/dashboard/services/dashboard.service";
 
-import { GetDashboardStatsService } from "@/modules/dashboard/services/get-dashboard-stats.service";
+const service = new DashboardService();
 
 export async function GET() {
-    const userId = "mock-user-id";
+    /**
+     * Replace with authenticated user later.
+     */
+    const userId = "demo-user-id";
 
-    const service = new GetDashboardStatsService();
+    const dashboard = await service.execute(userId);
 
-    const stats = await service.execute(userId);
-
-    return NextResponse.json(stats);
+    return NextResponse.json(dashboard);
 }
