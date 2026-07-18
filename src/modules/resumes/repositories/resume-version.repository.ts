@@ -36,18 +36,22 @@ export class ResumeVersionRepository {
         });
     }
 
-    async findDetailedVersion(id: string, userId: string) {
+    async findDetailedVersion(versionId: string, userId: string) {
         return prisma.resumeVersion.findFirst({
             where: {
-                id,
+                id: versionId,
                 resume: {
                     userId,
                 },
             },
-
             include: {
-                resume: true,
-
+                resume: {
+                    select: {
+                        id: true,
+                        title: true,
+                        primaryStack: true,
+                    },
+                },
                 parent: {
                     select: {
                         id: true,
@@ -55,24 +59,9 @@ export class ResumeVersionRepository {
                         status: true,
                     },
                 },
-
-                children: {
-                    orderBy: {
-                        versionNumber: "asc",
-                    },
-
+                _count: {
                     select: {
-                        id: true,
-                        versionNumber: true,
-                        status: true,
-                    },
-                },
-
-                fileAsset: true,
-
-                matchResults: {
-                    orderBy: {
-                        createdAt: "desc",
+                        matchResults: true,
                     },
                 },
             },
@@ -153,6 +142,41 @@ export class ResumeVersionRepository {
 
             data: {
                 status: "FINAL",
+            },
+        });
+    }
+    async findForDeletion(versionId: string, userId: string) {
+        return prisma.resumeVersion.findFirst({
+            where: {
+                id: versionId,
+                resume: {
+                    userId,
+                },
+            },
+            include: {
+                _count: {
+                    select: {
+                        children: true,
+                        matchResults: true,
+                        applications: true,
+                    },
+                },
+            },
+        });
+    }
+
+    async countByResumeId(resumeId: string): Promise<number> {
+        return prisma.resumeVersion.count({
+            where: {
+                resumeId,
+            },
+        });
+    }
+
+    async deleteById(versionId: string) {
+        return prisma.resumeVersion.delete({
+            where: {
+                id: versionId,
             },
         });
     }

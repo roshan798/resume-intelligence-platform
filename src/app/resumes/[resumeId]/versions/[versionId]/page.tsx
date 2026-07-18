@@ -2,24 +2,36 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
 
+import { KeywordPanel } from "@/components/resumes/keyword-panel";
+import { ParsedSections } from "@/components/resumes/parsed-sections";
 import { VersionActions } from "@/components/resumes/version-actions";
+import { VersionEditor } from "@/components/resumes/version-editor";
 import { VersionHeader } from "@/components/resumes/version-header";
 import { VersionInfo } from "@/components/resumes/version-info";
 import { VersionLineage } from "@/components/resumes/version-lineage";
-import { ParsedSections } from "@/components/resumes/parsed-sections";
-import { KeywordPanel } from "@/components/resumes/keyword-panel";
+import { VersionRawText } from "@/components/resumes/version-raw-text";
 
-import { GetVersionService } from "@/modules/resumes/services/get-version.service";
 import { GetVersionLineageService } from "@/modules/resumes/services/get-version-lineage.service";
+import { GetVersionService } from "@/modules/resumes/services/get-version.service";
 
-interface Props {
+interface ResumeVersionPageProps {
     params: Promise<{
         resumeId: string;
         versionId: string;
     }>;
 }
 
-export default async function ResumeVersionPage({ params }: Props) {
+function toRecord(value: unknown): Record<string, unknown> | null {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        return null;
+    }
+
+    return value as Record<string, unknown>;
+}
+
+export default async function ResumeVersionPage({
+    params,
+}: ResumeVersionPageProps) {
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -31,19 +43,28 @@ export default async function ResumeVersionPage({ params }: Props) {
     const versionService = new GetVersionService();
     const lineageService = new GetVersionLineageService();
 
-    const version = await versionService.execute(versionId, session.user.id);
+    const [version, lineage] = await Promise.all([
+        versionService.execute(versionId, session.user.id),
+        lineageService.execute(resumeId, session.user.id),
+    ]);
 
-    if (!version) {
+    if (!version || version.resumeId !== resumeId) {
         notFound();
     }
 
-    const lineage = await lineageService.execute(resumeId, session.user.id);
+    const parsedSections = toRecord(version.parsedSections);
+    const canonicalKeywords = toRecord(version.canonicalKeywords);
 
     return (
-        <div className="container mx-auto space-y-8 p-2 py-8">
+        <main className="container mx-auto max-w-7xl space-y-8 px-4 py-8">
             <VersionHeader version={version} />
-
-            <VersionActions versionId={version.id} />
+            <VersionActions
+                versionId={version.id}
+                resumeId={resumeId}
+                status={version.status}
+                hasRawText={Boolean(version.rawText?.trim())}
+                hasLatexSource={Boolean(version.latexSource?.trim())}
+            />
 
             <VersionInfo version={version} />
 
@@ -52,15 +73,22 @@ export default async function ResumeVersionPage({ params }: Props) {
                 versions={lineage}
             />
 
-            <KeywordPanel
-                keywords={version.canonicalKeywords as Record<string, unknown>}
-            />
+            {version.status === "TAILORED_DRAFT" ? (
+                <VersionEditor
+                    versionId={version.id}
+                    initialRawText={version.rawText}
+                    initialLatexSource={version.latexSource}
+                />
+            ) : (
+                <VersionRawText
+                    rawText={version.rawText}
+                    latexSource={version.latexSource}
+                />
+            )}
 
-            <ParsedSections
-                parsedSections={
-                    version.parsedSections as Record<string, unknown>
-                }
-            />
-        </div>
+            <KeywordPanel keywords={canonicalKeywords} />
+
+            <ParsedSections parsedSections={parsedSections} />
+        </main>
     );
 }

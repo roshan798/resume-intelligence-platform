@@ -1,55 +1,76 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface Props {
+interface VersionInfoProps {
     version: {
         sourceFormat: string;
         createdAt: Date | string;
         updatedAt: Date | string;
+
         parent?: {
+            id: string;
             versionNumber: number;
+            status: string;
         } | null;
-        matchResults: unknown[];
+
+        _count: {
+            matchResults: number;
+        };
     };
 }
 
-export function VersionInfo({ version }: Props) {
+function formatDate(value: Date | string): string {
+    const date = value instanceof Date ? value : new Date(value);
+
+    return new Intl.DateTimeFormat("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(date);
+}
+
+export function VersionInfo({ version }: VersionInfoProps) {
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Version Information</CardTitle>
             </CardHeader>
 
-            <CardContent className="grid gap-4 md:grid-cols-2">
-                <div>
+            <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">
-                        Source Format
+                        Source format
                     </p>
 
-                    <p>{version.sourceFormat}</p>
+                    <p className="font-medium">{version.sourceFormat}</p>
                 </div>
 
-                <div>
-                    <p className="text-sm text-muted-foreground">Matches</p>
-
-                    <p>{version.matchResults.length}</p>
-                </div>
-
-                <div>
+                <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Created</p>
 
-                    <p>{new Date(version.createdAt).toLocaleString()}</p>
+                    <p className="font-medium">
+                        {formatDate(version.createdAt)}
+                    </p>
                 </div>
 
-                <div>
+                <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Updated</p>
 
-                    <p>{new Date(version.updatedAt).toLocaleString()}</p>
+                    <p className="font-medium">
+                        {formatDate(version.updatedAt)}
+                    </p>
                 </div>
 
-                <div>
-                    <p className="text-sm text-muted-foreground">Parent</p>
+                <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Matches</p>
 
-                    <p>
+                    <p className="font-medium">{version._count.matchResults}</p>
+                </div>
+
+                <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                        Parent version
+                    </p>
+
+                    <p className="font-medium">
                         {version.parent
                             ? `Version ${version.parent.versionNumber}`
                             : "None"}

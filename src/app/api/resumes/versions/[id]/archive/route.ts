@@ -3,25 +3,25 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ArchiveVersionService } from "@/modules/resumes/services/archive-version.service";
 
-interface RouteContext {
-    params: Promise<{
-        id: string;
-    }>;
-}
-export async function POST(request: Request, context: RouteContext) {
+export async function POST(
+    request: Request,
+    context: {
+        params: Promise<{
+            id: string;
+        }>;
+    },
+) {
     const session = await auth();
 
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const service = new ArchiveVersionService();
     const { id } = await context.params;
-    const result = await service.execute(id, session.user.id);
 
-    if (!result) {
-        return NextResponse.json({ message: "Not found" }, { status: 404 });
-    }
+    const service = new ArchiveVersionService();
 
-    return NextResponse.json(result);
+    const version = await service.execute(id, session.user.id);
+
+    return NextResponse.json(version);
 }
