@@ -1,46 +1,66 @@
-import { FormattingHealthCard } from "@/components/match/formatting-health-card";
-import { KeywordList } from "@/components/match/keyword-list";
+import { notFound } from "next/navigation";
 
-export default async function Page(props: {
+import { auth } from "@/auth";
+
+import { VersionActions } from "@/components/resumes/version-actions";
+import { VersionHeader } from "@/components/resumes/version-header";
+import { VersionInfo } from "@/components/resumes/version-info";
+import { VersionLineage } from "@/components/resumes/version-lineage";
+import { ParsedSections } from "@/components/resumes/parsed-sections";
+import { KeywordPanel } from "@/components/resumes/keyword-panel";
+
+import { GetVersionService } from "@/modules/resumes/services/get-version.service";
+import { GetVersionLineageService } from "@/modules/resumes/services/get-version-lineage.service";
+
+interface Props {
     params: Promise<{
+        resumeId: string;
         versionId: string;
     }>;
-}) {
-    const params = await props.params;
+}
 
-    const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/api/resumes/versions/${params.versionId}`,
-        {
-            cache: "no-store",
-        },
-    );
+export default async function ResumeVersionPage({ params }: Props) {
+    const session = await auth();
 
-    const version = await response.json();
+    if (!session?.user?.id) {
+        notFound();
+    }
+
+    const { resumeId, versionId } = await params;
+
+    const versionService = new GetVersionService();
+    const lineageService = new GetVersionLineageService();
+
+    const version = await versionService.execute(versionId, session.user.id);
+
+    if (!version) {
+        notFound();
+    }
+
+    const lineage = await lineageService.execute(resumeId, session.user.id);
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold">
-                    Version v{version.versionNumber}
-                </h1>
-                <p>Status: {version.status}</p>
-            </div>
+        <div className="container mx-auto space-y-8 p-2 py-8">
+            <VersionHeader version={version} />
 
-            {/* Fix 1: Changed variant to an accepted union type value */}
-            <KeywordList
-                title="Keywords"
-                keywords={version.canonicalKeywords}
-                variant="matched"
+            <VersionActions versionId={version.id} />
+
+            <VersionInfo version={version} />
+
+            <VersionLineage
+                resumeId={resumeId}
+                versions={lineage}
             />
 
-            {/* Fix 2: Removed 'issues' since the component only expects the 'score' property */}
-            <FormattingHealthCard score={100} warnings={[]}/>
+            <KeywordPanel
+                keywords={version.canonicalKeywords as Record<string, unknown>}
+            />
 
-            {version.latexSource && (
-                <pre className="overflow-auto rounded border p-4">
-                    {version.latexSource}
-                </pre>
-            )}
+            <ParsedSections
+                parsedSections={
+                    version.parsedSections as Record<string, unknown>
+                }
+            />
         </div>
     );
 }

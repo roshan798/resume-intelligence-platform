@@ -1,6 +1,5 @@
-import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
-
+import { Prisma } from "@prisma/client";
 export class ResumeVersionRepository {
     async getActiveVersions(userId: string) {
         return prisma.resumeVersion.findMany({
@@ -8,14 +7,20 @@ export class ResumeVersionRepository {
                 resume: {
                     userId,
                 },
-
                 status: {
                     not: "ARCHIVED",
                 },
             },
-
             include: {
                 resume: true,
+            },
+        });
+    }
+
+    async findById(id: string) {
+        return prisma.resumeVersion.findUnique({
+            where: {
+                id,
             },
         });
     }
@@ -31,10 +36,45 @@ export class ResumeVersionRepository {
         });
     }
 
-    async findById(id: string) {
-        return prisma.resumeVersion.findUnique({
+    async findDetailedVersion(id: string, userId: string) {
+        return prisma.resumeVersion.findFirst({
             where: {
                 id,
+                resume: {
+                    userId,
+                },
+            },
+
+            include: {
+                resume: true,
+
+                parent: {
+                    select: {
+                        id: true,
+                        versionNumber: true,
+                        status: true,
+                    },
+                },
+
+                children: {
+                    orderBy: {
+                        versionNumber: "asc",
+                    },
+
+                    select: {
+                        id: true,
+                        versionNumber: true,
+                        status: true,
+                    },
+                },
+
+                fileAsset: true,
+
+                matchResults: {
+                    orderBy: {
+                        createdAt: "desc",
+                    },
+                },
             },
         });
     }
@@ -44,7 +84,6 @@ export class ResumeVersionRepository {
             where: {
                 resumeId,
             },
-
             orderBy: {
                 versionNumber: "desc",
             },
@@ -71,15 +110,50 @@ export class ResumeVersionRepository {
             orderBy: {
                 versionNumber: "asc",
             },
+
+            select: {
+                id: true,
+                versionNumber: true,
+                status: true,
+                parentVersionId: true,
+                createdAt: true,
+            },
         });
     }
 
-    async updateDraft(id: string, data: Prisma.ResumeVersionUncheckedUpdateInput) {
+    async updateDraft(
+        id: string,
+        data: Prisma.ResumeVersionUncheckedUpdateInput,
+    ) {
         return prisma.resumeVersion.update({
             where: {
                 id,
             },
             data,
+        });
+    }
+
+    async archive(id: string) {
+        return prisma.resumeVersion.update({
+            where: {
+                id,
+            },
+
+            data: {
+                status: "ARCHIVED",
+            },
+        });
+    }
+
+    async finalize(id: string) {
+        return prisma.resumeVersion.update({
+            where: {
+                id,
+            },
+
+            data: {
+                status: "FINAL",
+            },
         });
     }
 }

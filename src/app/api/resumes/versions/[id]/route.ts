@@ -1,44 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+
 import { UpdateDraftVersionService } from "@/modules/resumes/services/update-draft-version.service";
-import { prisma } from "@/lib/prisma";
-
-export async function PATCH(
-    request: NextRequest,
-    context: {
-        params: Promise<{
-            id: string;
-        }>;
-    },
-) {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
-
-    const params = await context.params;
-
-    const service = new UpdateDraftVersionService();
-
-    const result = await service.execute(
-        {
-            versionId: params.id,
-
-            ...body,
-        },
-        session.user.id,
-    );
-
-    if (!result) {
-        return NextResponse.json({ message: "Not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(result);
-}
+import { GetVersionService } from "@/modules/resumes/services/get-version.service";
 
 export async function GET(
     request: NextRequest,
@@ -51,23 +16,21 @@ export async function GET(
     const session = await auth();
 
     if (!session?.user?.id) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        return NextResponse.json(
+            {
+                message: "Unauthorized",
+            },
+            {
+                status: 401,
+            },
+        );
     }
 
     const params = await context.params;
 
-    const version = await prisma.resumeVersion.findFirst({
-        where: {
-            id: params.id,
-            resume: {
-                userId: session.user.id,
-            },
-        },
+    const service = new GetVersionService();
 
-        include: {
-            parent: true,
-        },
-    });
+    const version = await service.execute(params.id, session.user.id);
 
     if (!version) {
         return NextResponse.json(
@@ -81,4 +44,53 @@ export async function GET(
     }
 
     return NextResponse.json(version);
+}
+
+export async function PATCH(
+    request: NextRequest,
+    context: {
+        params: Promise<{
+            id: string;
+        }>;
+    },
+) {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+        return NextResponse.json(
+            {
+                message: "Unauthorized",
+            },
+            {
+                status: 401,
+            },
+        );
+    }
+
+    const params = await context.params;
+
+    const body = await request.json();
+
+    const service = new UpdateDraftVersionService();
+
+    const updated = await service.execute(
+        {
+            versionId: params.id,
+            ...body,
+        },
+        session.user.id,
+    );
+
+    if (!updated) {
+        return NextResponse.json(
+            {
+                message: "Version not found",
+            },
+            {
+                status: 404,
+            },
+        );
+    }
+
+    return NextResponse.json(updated);
 }
