@@ -1,44 +1,32 @@
 export interface DashboardStatsDto {
     totalResumes: number;
     totalApplications: number;
-    totalInterviews: number;
-    averageMatchScore: number;
+    averageAtsScore: number;
+    aiSuggestionsGenerated: number;
 }
 
-export interface RecentResumeDto {
+export interface ActivityItemDto {
     id: string;
     title: string;
-    versionNumber: number;
-    status: string;
-    updatedAt: Date;
-}
-
-export interface DashboardDto {
-    stats: DashboardStatsDto;
-    recentResumes: RecentResumeDto[];
-}
-
-export interface RecentApplicationDto {
-    id: string;
-    company: string;
-    roleTitle: string;
-    status: string;
-    updatedAt: Date;
-}
-
-export interface ActivityDto {
-    id: string;
-    type: string;
-    title: string;
+    description: string;
     createdAt: Date;
 }
 
-export interface DashboardDto {
+export interface DashboardResponseDto {
     stats: DashboardStatsDto;
 
-    recentResumes: RecentResumeDto[];
+    recentResumes: {
+        id: string;
+        title: string;
+        updatedAt: Date;
+    }[];
 
-    recentApplications: RecentApplicationDto[];
+    recentApplications: {
+        id: string;
+        company: string;
+        roleTitle: string;
+        status: string;
+    }[];
 
-    activity: ActivityDto[];
+    activities: ActivityItemDto[];
 }

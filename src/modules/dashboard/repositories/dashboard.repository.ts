@@ -2,24 +2,23 @@ import { prisma } from "@/lib/prisma";
 
 export class DashboardRepository {
     async getStats(userId: string) {
-        const [totalResumes, totalApplications, interviews, matches] =
-            await Promise.all([
+        const [resumes, applications, suggestions, matches] = await Promise.all(
+            [
                 prisma.resume.count({
-                    where: {
-                        userId,
-                    },
+                    where: { userId },
                 }),
 
                 prisma.application.count({
-                    where: {
-                        userId,
-                    },
+                    where: { userId },
                 }),
 
-                prisma.application.count({
+                prisma.aISuggestion.count({
                     where: {
-                        userId,
-                        status: "INTERVIEW",
+                        resumeVersion: {
+                            resume: {
+                                userId,
+                            },
+                        },
                     },
                 }),
 
@@ -35,76 +34,42 @@ export class DashboardRepository {
                         overallScore: true,
                     },
                 }),
-            ]);
+            ],
+        );
 
-        const averageMatchScore =
+        const average =
             matches.length === 0
                 ? 0
-                : Number(
-                      (
-                          matches.reduce(
-                              (sum, item) => sum + Number(item.overallScore),
-                              0,
-                          ) / matches.length
-                      ).toFixed(2),
-                  );
+                : matches.reduce(
+                      (sum, item) => sum + Number(item.overallScore),
+                      0,
+                  ) / matches.length;
 
         return {
-            totalResumes,
-            totalApplications,
-            totalInterviews: interviews,
-            averageMatchScore,
+            totalResumes: resumes,
+            totalApplications: applications,
+            aiSuggestionsGenerated: suggestions,
+            averageAtsScore: Number(average.toFixed(2)),
         };
     }
 
     async getRecentResumes(userId: string) {
-        return prisma.resumeVersion.findMany({
-            where: {
-                resume: {
-                    userId,
-                },
-            },
-            include: {
-                resume: true,
-            },
+        return prisma.resume.findMany({
+            where: { userId },
             orderBy: {
                 updatedAt: "desc",
             },
             take: 5,
         });
     }
+
     async getRecentApplications(userId: string) {
         return prisma.application.findMany({
-            where: {
-                userId,
-            },
+            where: { userId },
             orderBy: {
-                updatedAt: "desc",
+                createdAt: "desc",
             },
             take: 5,
         });
     }
-    async getRecentActivities(userId: string) {
-    const resumes = await prisma.resumeVersion.findMany({
-        where: {
-            resume: {
-                userId,
-            },
-        },
-        include: {
-            resume: true,
-        },
-        orderBy: {
-            updatedAt: "desc",
-        },
-        take: 5,
-    });
-
-    return resumes.map((resume) => ({
-        id: resume.id,
-        type: "resume",
-        title: `Updated ${resume.resume.title} v${resume.versionNumber}`,
-        createdAt: resume.updatedAt,
-    }));
-}
 }
