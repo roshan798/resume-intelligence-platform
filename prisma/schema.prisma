@@ -81,9 +81,19 @@ enum BackgroundJobStatus {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String?
+  name          String?
+  image         String?
+  role          String    @default("USER")
+  emailVerified DateTime?
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
 
   resumes        Resume[]
   jdAnalyses     JDAnalysis[]
@@ -93,6 +103,42 @@ model User {
   backgroundJobs BackgroundJob[]
 
   @@map("users")
+}
+
+model Session {
+  sessionToken String @unique
+
+  userId String
+
+  expires DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionToken])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+
+  refresh_token String? @db.Text
+  access_token  String? @db.Text
+
+  expires_at Int?
+
+  token_type String?
+
+  scope String?
+
+  id_token String? @db.Text
+
+  session_state String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
 }
 
 model Resume {
