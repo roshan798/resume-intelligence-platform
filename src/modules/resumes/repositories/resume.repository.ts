@@ -1,6 +1,52 @@
-import { prisma } from "@/lib/prisma/prisma";
-import { Prisma } from "@/generated/prisma";
+import { prisma } from "@/lib/prisma";
+import { Prisma, SourceFormat } from "@/generated/prisma";
+
 export class ResumeRepository {
+    async findAllByUser(userId: string) {
+        return prisma.resume.findMany({
+            where: {
+                userId,
+            },
+
+            include: {
+                versions: {
+                    include: {
+                        matchResults: true,
+                    },
+
+                    orderBy: {
+                        versionNumber: "desc",
+                    },
+                },
+            },
+
+            orderBy: {
+                updatedAt: "desc",
+            },
+        });
+    }
+
+    async findById(userId: string, resumeId: string) {
+        return prisma.resume.findFirst({
+            where: {
+                id: resumeId,
+                userId,
+            },
+
+            include: {
+                versions: {
+                    include: {
+                        matchResults: true,
+                    },
+
+                    orderBy: {
+                        versionNumber: "desc",
+                    },
+                },
+            },
+        });
+    }
+
     async createResume(userId: string, title: string, primaryStack?: string) {
         return prisma.resume.create({
             data: {
@@ -13,8 +59,8 @@ export class ResumeRepository {
 
     async createVersion(data: {
         resumeId: string;
-        sourceFormat: "PDF" | "DOCX" | "LATEX";
         fileAssetId: string;
+        sourceFormat: SourceFormat;
     }) {
         return prisma.resumeVersion.create({
             data: {
@@ -22,14 +68,20 @@ export class ResumeRepository {
                 versionNumber: 1,
                 status: "MASTER",
                 sourceFormat: data.sourceFormat,
+
                 rawText: "",
+
                 parsedSections: {},
-                canonicalKeywords: {},
+
+                canonicalKeywords: [],
+
                 fingerprintHash: "",
+
                 fileAssetId: data.fileAssetId,
             },
         });
     }
+
     async updateParsedData(
         versionId: string,
         parsed: {
@@ -45,43 +97,8 @@ export class ResumeRepository {
 
             data: {
                 rawText: parsed.rawText,
-
                 parsedSections: parsed.parsedSections,
-
                 canonicalKeywords: parsed.canonicalKeywords,
-            },
-        });
-    }
-    async createMatchResult(data: {
-        jdAnalysisId: string;
-        resumeVersionId: string;
-        overallScore: number;
-        matchedKeywords: string[];
-        missingKeywords: string[];
-        weakKeywords: string[];
-    }) {
-        return prisma.matchResult.create({
-            data: {
-                ...data,
-                sectionScores: {},
-                formattingHealth: {},
-            },
-        });
-    }
-    async getActiveVersions(userId: string) {
-        return prisma.resumeVersion.findMany({
-            where: {
-                resume: {
-                    userId,
-                },
-
-                status: {
-                    not: "ARCHIVED",
-                },
-            },
-
-            include: {
-                resume: true,
             },
         });
     }

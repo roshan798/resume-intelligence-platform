@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma/prisma";
+import { prisma } from "@/lib/prisma";
 export interface ResumeSimilarityResult {
     id: string;
     title: string;

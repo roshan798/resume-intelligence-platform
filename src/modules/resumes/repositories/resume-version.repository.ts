@@ -1,5 +1,5 @@
 import { Prisma } from "@/generated/prisma";
-import { prisma } from "@/lib/prisma/prisma";
+import { prisma } from "@/lib/prisma";
 
 export class ResumeVersionRepository {
     async getActiveVersions(userId: string) {

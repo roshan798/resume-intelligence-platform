@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 
-import { prisma } from "@/lib/prisma/prisma";
+import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
 import { SupabaseStorage } from "@/lib/storage/supabase-storage";

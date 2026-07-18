@@ -49,7 +49,7 @@ export default function Home() {
 
             <main>
                 <section className="relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
+                    <div className="absolute inset-0 bg-linear-to-b from-primary/5 via-background to-background" />
                     <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 md:py-28 lg:grid-cols-2 lg:items-center">
                         <div className="relative z-10 mt-2">
                             <span className="inline-flex items-center rounded-full border bg-background px-4 py-1 text-sm text-muted-foreground shadow-sm">
