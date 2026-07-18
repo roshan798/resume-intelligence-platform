@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -8,8 +10,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-// Fix 1: Imported the actual 'loginSchema' runtime object along with the type
 import {
     loginSchema,
     LoginSchema,
@@ -18,8 +18,8 @@ import {
 export function LoginForm() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
-    // Fix 2: Extracted standard React Hook Form parameters to completely bypass the missing wrapper dependencies
     const {
         register,
         handleSubmit,
@@ -35,20 +35,20 @@ export function LoginForm() {
     async function onSubmit(values: LoginSchema) {
         setLoading(true);
 
-        const result = await signIn("credentials", {
-            email: values.email,
-            password: values.password,
-            redirect: false,
-        });
-
-        setLoading(false);
-
-        if (result?.error) {
-            alert(result.error);
-            return;
+        try {
+            // In Auth.js v5, standard redirect happens automatically.
+            // If the credentials fail, NextAuth will throw a redirect error or route to the error page.
+            await signIn("credentials", {
+                email: values.email,
+                password: values.password,
+                callbackUrl: "/dashboard",
+            });
+        } catch (err) {
+            // This catches any local network issues before the redirect lifecycle triggers
+            console.error("Authentication submission failed", err);
+        } finally {
+            setLoading(false);
         }
-
-        router.push("/dashboard");
     }
 
     return (
@@ -75,10 +75,27 @@ export function LoginForm() {
                 <label className="text-sm font-medium leading-none">
                     Password
                 </label>
-                <Input
-                    {...register("password")}
-                    type="password"
-                />
+                <div className="relative">
+                    <Input
+                        {...register("password")}
+                        type={showPassword ? "text" : "password"}
+                        className="pr-10"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                        }
+                        aria-pressed={showPassword}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground">
+                        {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                        ) : (
+                            <Eye className="h-4 w-4" />
+                        )}
+                    </button>
+                </div>
                 {errors.password && (
                     <p className="text-xs font-medium text-destructive">
                         {errors.password.message}
@@ -86,12 +103,23 @@ export function LoginForm() {
                 )}
             </div>
 
-            <Button
-                className="w-full"
-                disabled={loading}
-                type="submit">
-                Login
-            </Button>
+            <div className="space-y-3">
+                <Button
+                    className="w-full"
+                    disabled={loading}
+                    type="submit">
+                    {loading ? "Logging in..." : "Login"}
+                </Button>
+
+                <p className="text-center text-sm text-muted-foreground">
+                    Don&apos;t have an account?{" "}
+                    <Link
+                        href="/register"
+                        className="font-medium text-primary hover:underline">
+                        Sign up
+                    </Link>
+                </p>
+            </div>
         </form>
     );
 }

@@ -5,7 +5,7 @@ import { RegisterService } from "@/modules/auth/services/register.service";
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-
+        
         const service = new RegisterService();
 
         const user = await service.execute(body);
