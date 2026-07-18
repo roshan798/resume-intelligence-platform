@@ -73,4 +73,38 @@ export class DashboardRepository {
             take: 5,
         });
     }
+    async getRecentApplications(userId: string) {
+        return prisma.application.findMany({
+            where: {
+                userId,
+            },
+            orderBy: {
+                updatedAt: "desc",
+            },
+            take: 5,
+        });
+    }
+    async getRecentActivities(userId: string) {
+    const resumes = await prisma.resumeVersion.findMany({
+        where: {
+            resume: {
+                userId,
+            },
+        },
+        include: {
+            resume: true,
+        },
+        orderBy: {
+            updatedAt: "desc",
+        },
+        take: 5,
+    });
+
+    return resumes.map((resume) => ({
+        id: resume.id,
+        type: "resume",
+        title: `Updated ${resume.resume.title} v${resume.versionNumber}`,
+        createdAt: resume.updatedAt,
+    }));
+}
 }

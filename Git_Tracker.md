@@ -186,3 +186,13 @@
 - Added dashboard header component
 - Added reusable stat card component
 - Added dashboard statistics grid
+
+## Dashboard Widgets
+
+- Added Recent Resume Versions widget
+- Added Recent Applications widget
+- Added Activity Feed widget
+- Added Quick Actions widget
+- Extended dashboard repository
+- Extended dashboard service
+- Added dashboard DTOs for applications and activity

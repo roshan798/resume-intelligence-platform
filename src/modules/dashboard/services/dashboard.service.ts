@@ -4,13 +4,16 @@ export class DashboardService {
     private repository = new DashboardRepository();
 
     async execute(userId: string) {
-        const [stats, resumes] = await Promise.all([
+        const [stats, resumes, applications, activity] = await Promise.all([
             this.repository.getStats(userId),
             this.repository.getRecentResumes(userId),
+            this.repository.getRecentApplications(userId),
+            this.repository.getRecentActivities(userId),
         ]);
 
         return {
             stats,
+
             recentResumes: resumes.map((resume) => ({
                 id: resume.id,
                 title: resume.resume.title,
@@ -18,6 +21,10 @@ export class DashboardService {
                 status: resume.status,
                 updatedAt: resume.updatedAt,
             })),
+
+            recentApplications: applications,
+
+            activity,
         };
     }
 }
