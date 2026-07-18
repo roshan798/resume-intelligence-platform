@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { UploadResumeService } from "@/modules/resumes/services/upload-resume.service";
+import { auth } from "@/auth";
 
 export async function POST(request: Request) {
     const formData = await request.formData();
@@ -11,7 +12,14 @@ export async function POST(request: Request) {
 
     const primaryStack = formData.get("primaryStack") as string;
 
-    const userId = "temporary-user-id";
+    const session = await auth();
+
+    if (!session?.user) {
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+
 
     const service = new UploadResumeService();
 
