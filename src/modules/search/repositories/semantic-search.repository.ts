@@ -7,23 +7,26 @@ export interface ResumeSimilarityResult {
 export class SemanticSearchRepository {
     async findSimilarResumes(
         embedding: number[],
+        userId: string,
         limit = 5,
     ): Promise<ResumeSimilarityResult[]> {
         const vector = `[${embedding.join(",")}]`;
 
         return prisma.$queryRawUnsafe(`
       SELECT
-        id,
-        resume_id,
-        1 - (embedding <=> '${vector}') AS similarity
-      FROM resume_versions
-      WHERE embedding IS NOT NULL
-      ORDER BY embedding <=> '${vector}'
+        rv.id,
+        r.title,
+        1 - (rv.embedding <=> '${vector}') AS similarity
+      FROM resume_versions rv
+      JOIN resumes r ON r.id = rv."resumeId"
+      WHERE rv.embedding IS NOT NULL
+        AND r."userId" = '${userId}'
+      ORDER BY rv.embedding <=> '${vector}'
       LIMIT ${limit}
     `);
     }
 
-    async findSimilarJDs(embedding: number[], limit = 5) {
+    async findSimilarJDs(embedding: number[], userId: string, limit = 5) {
         const vector = `[${embedding.join(",")}]`;
 
         return prisma.$queryRawUnsafe(`
@@ -34,6 +37,7 @@ export class SemanticSearchRepository {
         1 - (embedding <=> '${vector}') AS similarity
       FROM jd_analyses
       WHERE embedding IS NOT NULL
+        AND "userId" = '${userId}'
       ORDER BY embedding <=> '${vector}'
       LIMIT ${limit}
     `);

@@ -9,14 +9,23 @@ export class MoveApplicationService {
     private readonly historyRepository =
         new ApplicationStatusHistoryRepository();
 
-    async execute(applicationId: string, targetStatus: ApplicationStatus) {
-        const application = await this.repository.updateStatus(
+    async execute(
+        applicationId: string,
+        targetStatus: ApplicationStatus,
+        userId: string,
+    ) {
+        const updatedCount = await this.repository.updateStatus(
             applicationId,
             targetStatus,
+            userId,
         );
+
+        if (updatedCount === 0) {
+            return null;
+        }
 
         await this.historyRepository.create(applicationId, targetStatus);
 
-        return application;
+        return this.repository.findByIdAndUser(applicationId, userId);
     }
 }

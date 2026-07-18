@@ -1,17 +1,24 @@
-import { GetMatchResultService } from "@/modules/jd/services/get-match-result.service";
+import { MatchResultRepository } from "@/modules/match/repositories/match-result.repository";
+import { auth } from "@/auth";
 
 type Props = {
-    params: Promise<{
+    params: {
         matchId: string;
-    }>;
+    };
 };
 
 export default async function MatchPage({ params }: Props) {
-    const { matchId } = await params;
+    const { matchId } = params;
+    const session = await auth();
 
-    const service = new GetMatchResultService();
+    if (!session?.user?.id) {
+        // Should be handled by layout, but for safety
+        return <div>Unauthorized</div>;
+    }
 
-    const result = await service.execute(matchId);
+    const repository = new MatchResultRepository();
+
+    const result = await repository.getByIdAndUser(matchId, session.user.id);
 
     if (!result) {
         return <div>Match not found</div>;

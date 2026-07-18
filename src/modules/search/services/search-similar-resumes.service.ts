@@ -6,9 +6,9 @@ export class SearchSimilarResumesService {
 
     private provider = new OpenAIEmbeddingProvider();
 
-    async execute(query: string) {
-        const embeddingResult  = await this.provider.generateEmbedding(query);
+    async execute(query: string, userId: string) {
+        const embeddingResult = await this.provider.generateEmbedding(query);
 
-        return this.repository.findSimilarResumes(embeddingResult .embedding);
+        return this.repository.findSimilarResumes(embeddingResult.embedding, userId);
     }
 }

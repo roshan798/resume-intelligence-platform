@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { auth } from "@/auth";
 import { UpdateDraftVersionService } from "@/modules/resumes/services/update-draft-version.service";
 import { prisma } from "@/lib/prisma";
 
@@ -11,17 +12,30 @@ export async function PATCH(
         }>;
     },
 ) {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const params = await context.params;
 
     const service = new UpdateDraftVersionService();
 
-    const result = await service.execute({
-        versionId: params.id,
+    const result = await service.execute(
+        {
+            versionId: params.id,
 
-        ...body,
-    });
+            ...body,
+        },
+        session.user.id,
+    );
+
+    if (!result) {
+        return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
 
     return NextResponse.json(result);
 }
@@ -34,11 +48,20 @@ export async function GET(
         }>;
     },
 ) {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
     const params = await context.params;
 
-    const version = await prisma.resumeVersion.findUnique({
+    const version = await prisma.resumeVersion.findFirst({
         where: {
             id: params.id,
+            resume: {
+                userId: session.user.id,
+            },
         },
 
         include: {

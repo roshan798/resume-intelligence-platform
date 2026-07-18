@@ -14,9 +14,14 @@ export class DashboardService {
             this.repository.getRecentApplications(userId),
         ]);
 
+        const recentResumes = resumes.map((v) => ({
+            ...v,
+            title: v.resume.title,
+        }));
+
         return {
             stats,
-            recentResumes: resumes,
+            recentResumes,
             recentApplications: applications,
             activities: [],
         };

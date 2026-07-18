@@ -7,5 +7,7 @@ export const config = {
         "/applications/:path*",
         "/ai/:path*",
         "/settings/:path*",
+        "/matches/:path*",
+        "/match-results/:path*",
     ],
 };

@@ -10,10 +10,13 @@ export class MatchResultRepository {
         });
     }
 
-    async getByAnalysis(jdAnalysisId: string) {
+    async getByAnalysisAndUser(jdAnalysisId: string, userId: string) {
         return prisma.matchResult.findMany({
             where: {
                 jdAnalysisId,
+                jdAnalysis: {
+                    userId,
+                },
             },
 
             orderBy: {
@@ -30,10 +33,21 @@ export class MatchResultRepository {
         });
     }
 
-    async getById(id: string) {
-        return prisma.matchResult.findUnique({
+    async getByIdAndUser(id: string, userId: string) {
+        return prisma.matchResult.findFirst({
             where: {
                 id,
+                jdAnalysis: {
+                    userId,
+                },
+            },
+            include: {
+                resumeVersion: {
+                    include: {
+                        resume: true,
+                    },
+                },
+                jdAnalysis: true,
             },
         });
     }

@@ -7,10 +7,13 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { Prisma } from "@prisma/client";
 
 export class UpdateDraftVersionService {
-    async execute(dto: UpdateDraftVersionDto) {
-        const version = await prisma.resumeVersion.findUnique({
+    async execute(dto: UpdateDraftVersionDto, userId: string) {
+        const version = await prisma.resumeVersion.findFirst({
             where: {
                 id: dto.versionId,
+                resume: {
+                    userId,
+                },
             },
         });
 

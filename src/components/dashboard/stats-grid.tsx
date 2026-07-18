@@ -19,13 +19,13 @@ export function StatsGrid({ stats }: Props) {
             />
 
             <StatCard
-                title="Interviews"
-                value={stats.totalInterviews}
+                title="AI Suggestions"
+                value={stats.aiSuggestionsGenerated}
             />
 
             <StatCard
                 title="Average ATS"
-                value={`${stats.averageMatchScore}%`}
+                value={`${stats.averageAtsScore}%`}
             />
         </div>
     );

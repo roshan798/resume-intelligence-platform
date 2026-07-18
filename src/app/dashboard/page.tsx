@@ -4,18 +4,18 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentApplications } from "@/components/dashboard/recent-applications";
 import { RecentResumes } from "@/components/dashboard/recent-resumes";
-
-async function getDashboard() {
-    // TODO get from .env
-    const response = await fetch("http://localhost:3000/api/dashboard", {
-        cache: "no-store",
-    });
-
-    return response.json();
-}
+import { auth } from "@/auth";
+import { DashboardService } from "@/modules/dashboard/services/dashboard.service";
 
 export default async function DashboardPage() {
-    const dashboard = await getDashboard();
+    const session = await auth();
+    if (!session?.user?.id) {
+        // This should be handled by middleware, but as a fallback
+        return null;
+    }
+
+    const dashboardService = new DashboardService();
+    const dashboard = await dashboardService.execute(session.user.id);
 
     return (
         <main className="mx-auto flex max-w-7xl flex-col gap-8 p-8">
@@ -32,7 +32,7 @@ export default async function DashboardPage() {
 
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
-                    <ActivityFeed activity={dashboard.activity} />
+                    <ActivityFeed activity={dashboard.activities} />
                 </div>
 
                 <QuickActions />

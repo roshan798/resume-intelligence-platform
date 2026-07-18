@@ -20,6 +20,17 @@ export class ResumeVersionRepository {
         });
     }
 
+    async findByIdAndUser(id: string, userId: string) {
+        return prisma.resumeVersion.findFirst({
+            where: {
+                id,
+                resume: {
+                    userId,
+                },
+            },
+        });
+    }
+
     async findById(id: string) {
         return prisma.resumeVersion.findUnique({
             where: {
@@ -48,10 +59,13 @@ export class ResumeVersionRepository {
         });
     }
 
-    async getLineage(resumeId: string) {
+    async getLineage(resumeId: string, userId: string) {
         return prisma.resumeVersion.findMany({
             where: {
                 resumeId,
+                resume: {
+                    userId,
+                },
             },
 
             orderBy: {

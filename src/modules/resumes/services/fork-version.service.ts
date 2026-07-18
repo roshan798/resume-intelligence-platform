@@ -5,8 +5,8 @@ import { Prisma } from "@prisma/client";
 export class ForkVersionService {
     private repository = new ResumeVersionRepository();
 
-    async execute(sourceVersionId: string, jdSnapshotId?: string) {
-        const source = await this.repository.findById(sourceVersionId);
+    async execute(sourceVersionId: string, userId: string, jdSnapshotId?: string) {
+        const source = await this.repository.findByIdAndUser(sourceVersionId, userId);
         if (!source) {
             throw new NotFoundError("Resume version");
         }

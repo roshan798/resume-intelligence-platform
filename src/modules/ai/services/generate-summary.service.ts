@@ -2,7 +2,7 @@ import { AIProvider } from "@/shared/enums/ai-provider.enum";
 import { AIProviderFactory } from "../factory/ai-provider.factory";
 
 export class GenerateSummaryService {
-    async execute(input: { jd: string; resume: string }) {
+    async execute(input: { jd: string; resume: string }, _userId: string) {
         const provider = AIProviderFactory.create(AIProvider.GROQ);
 
         const prompt = `

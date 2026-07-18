@@ -54,10 +54,22 @@ export class DashboardRepository {
     }
 
     async getRecentResumes(userId: string) {
-        return prisma.resume.findMany({
-            where: { userId },
+        return prisma.resumeVersion.findMany({
+            where: {
+                resume: {
+                    userId,
+                },
+            },
             orderBy: {
                 updatedAt: "desc",
+            },
+
+            include: {
+                resume: {
+                    select: {
+                        title: true,
+                    },
+                },
             },
             take: 5,
         });

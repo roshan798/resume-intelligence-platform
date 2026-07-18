@@ -15,7 +15,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
         });
 
         return {
-            vector: response.data[0].embedding,
+            embedding: response.data[0].embedding,
             dimensions: response.data[0].embedding.length,
             provider: "OPENAI",
             model: "text-embedding-3-small",

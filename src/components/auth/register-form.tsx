@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 export function RegisterForm() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const {
         register,
@@ -32,18 +33,35 @@ export function RegisterForm() {
 
     async function onSubmit(values: RegisterSchema) {
         setLoading(true);
+        setError(null);
 
-        await fetch("/api/register", {
+        const registerResponse = await fetch("/api/register", {
             method: "POST",
             body: JSON.stringify(values),
+            headers: {
+                "Content-Type": "application/json",
+            }
         });
 
-        await signIn("credentials", {
+        if (!registerResponse.ok) {
+            const data = await registerResponse.json();
+            setError(data.message || "Registration failed.");
+            setLoading(false);
+            return;
+        }
+
+        const signInResponse = await signIn("credentials", {
             email: values.email,
             password: values.password,
             redirect: false,
         });
 
+        if (signInResponse?.error) {
+            setError("Login failed after registration.");
+            setLoading(false);
+            return;
+        }
+        
         setLoading(false);
         router.push("/dashboard");
     }
@@ -52,6 +70,11 @@ export function RegisterForm() {
         <form
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-5">
+            {error && (
+                <p className="text-xs font-medium text-destructive">
+                    {error}
+                </p>
+            )}
             <div className="space-y-2">
                 <label className="text-sm font-medium leading-none">
                     Email

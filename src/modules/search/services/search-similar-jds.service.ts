@@ -6,9 +6,9 @@ export class SearchSimilarJDsService {
 
     private provider = new OpenAIEmbeddingProvider();
 
-    async execute(query: string) {
-        const embeddingResult  = await this.provider.generateEmbedding(query);
+    async execute(query: string, userId: string) {
+        const embeddingResult = await this.provider.generateEmbedding(query);
 
-        return this.repository.findSimilarJDs(embeddingResult.embedding);
+        return this.repository.findSimilarJDs(embeddingResult.embedding, userId);
     }
 }

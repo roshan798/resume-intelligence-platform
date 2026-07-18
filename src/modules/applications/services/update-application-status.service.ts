@@ -9,14 +9,23 @@ export class UpdateApplicationStatusService {
     private readonly historyRepository =
         new ApplicationStatusHistoryRepository();
 
-    async execute(applicationId: string, status: ApplicationStatus) {
-        const application = await this.applicationRepository.updateStatus(
+    async execute(
+        applicationId: string,
+        status: ApplicationStatus,
+        userId: string,
+    ) {
+        const updatedCount = await this.applicationRepository.updateStatus(
             applicationId,
             status,
+            userId,
         );
+
+        if (updatedCount === 0) {
+            return null;
+        }
 
         await this.historyRepository.create(applicationId, status);
 
-        return application;
+        return this.applicationRepository.findByIdAndUser(applicationId, userId);
     }
 }

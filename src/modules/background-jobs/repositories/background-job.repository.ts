@@ -1,7 +1,7 @@
-import { prisma } from "@/lib/prisma/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma,BackgroundJobStatus } from "@prisma/client";
 import { CreateJobDto } from "../dto/create-job.dto";
 import { UpdateJobDto } from "../dto/update-job.dto";
+import { prisma } from "@/lib/prisma";
 
 export class BackgroundJobRepository {
     create(dto: CreateJobDto) {
@@ -49,7 +49,7 @@ export class BackgroundJobRepository {
         });
     }
 
-    updateStatus(id: string, status: Prisma.BackgroundJobStatus) {
+    updateStatus(id: string, status: BackgroundJobStatus) {
         return prisma.backgroundJob.update({
             where: {
                 id,

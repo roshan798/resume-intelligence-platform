@@ -3,7 +3,7 @@ import { ResumeVersionRepository } from "../repositories/resume-version.reposito
 export class GetVersionLineageService {
     private repository = new ResumeVersionRepository();
 
-    async execute(resumeId: string) {
-        return this.repository.getLineage(resumeId);
+    async execute(resumeId: string, userId: string) {
+        return this.repository.getLineage(resumeId, userId);
     }
 }

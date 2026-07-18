@@ -2,7 +2,7 @@ import { AIProvider } from "@/shared/enums/ai-provider.enum";
 import { AIProviderFactory } from "../factory/ai-provider.factory";
 
 export class RewriteBulletsService {
-    async execute(input: { jd: string; bullets: string[] }) {
+    async execute(input: { jd: string; bullets: string[] }, _userId: string) {
         // const provider = AIProviderFactory.create(AIProviderFactory.getDefaultProvider());
         const provider = AIProviderFactory.create(AIProvider.GROQ);
 

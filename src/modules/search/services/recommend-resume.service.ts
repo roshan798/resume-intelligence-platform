@@ -6,11 +6,12 @@ export class RecommendResumeService {
 
     private repository = new SemanticSearchRepository();
 
-    async execute(jdText: string) {
+    async execute(jdText: string, userId: string) {
         const embedding = await this.embeddingService.execute(jdText);
 
         const matches = await this.repository.findSimilarResumes(
             embedding.embedding,
+            userId,
         );
 
         return matches[0] ?? null;

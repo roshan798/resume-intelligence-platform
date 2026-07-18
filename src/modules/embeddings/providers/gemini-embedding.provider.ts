@@ -17,7 +17,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
         const vector = response.embeddings?.[0]?.values ?? [];
 
         return {
-            vector,
+            embedding: vector,
             dimensions: vector.length,
             provider: "GEMINI",
             model: "text-embedding-004",

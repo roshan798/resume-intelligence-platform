@@ -2,7 +2,10 @@ import { AIProvider } from "@/shared/enums/ai-provider.enum";
 import { AIProviderFactory } from "../factory/ai-provider.factory";
 
 export class GenerateMissingKeywordsService {
-    async execute(input: { resumeText: string; missingKeywords: string[] }) {
+    async execute(
+        input: { resumeText: string; missingKeywords: string[] },
+        _userId: string,
+    ) {
         const provider = AIProviderFactory.create(AIProvider.GROQ);
 
         const prompt = `
