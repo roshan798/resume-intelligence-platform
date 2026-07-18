@@ -12,12 +12,14 @@ import { SlidersHorizontal } from "lucide-react";
 export function ResumeFilters() {
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                    Filters
-                </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+                render={
+                    <Button variant="outline">
+                        <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        Filters
+                    </Button>
+                }
+            />
 
             <DropdownMenuContent align="end">
                 <DropdownMenuItem>Newest First</DropdownMenuItem>

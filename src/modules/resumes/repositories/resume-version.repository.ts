@@ -59,9 +59,36 @@ export class ResumeVersionRepository {
                         status: true,
                     },
                 },
+                fileAsset: {
+                    select: {
+                        id: true,
+                        mimeType: true,
+                    },
+                },
                 _count: {
                     select: {
                         matchResults: true,
+                    },
+                },
+            },
+        });
+    }
+
+    async findPreviewSource(versionId: string, userId: string) {
+        return prisma.resumeVersion.findFirst({
+            where: {
+                id: versionId,
+                resume: {
+                    userId,
+                },
+            },
+            select: {
+                sourceFormat: true,
+                fileAsset: {
+                    select: {
+                        storageRef: true,
+                        mimeType: true,
+                        userId: true,
                     },
                 },
             },

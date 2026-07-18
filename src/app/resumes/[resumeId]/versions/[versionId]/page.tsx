@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 
 import { KeywordPanel } from "@/components/resumes/keyword-panel";
 import { ParsedSections } from "@/components/resumes/parsed-sections";
+import { ResumePdfPreview } from "@/components/resumes/resume-pdf-preview";
 import { VersionActions } from "@/components/resumes/version-actions";
 import { VersionEditor } from "@/components/resumes/version-editor";
 import { VersionHeader } from "@/components/resumes/version-header";
@@ -67,6 +68,12 @@ export default async function ResumeVersionPage({
             />
 
             <VersionInfo version={version} />
+
+            <ResumePdfPreview
+                versionId={version.id}
+                sourceFormat={version.sourceFormat}
+                fileMimeType={version.fileAsset?.mimeType}
+            />
 
             <VersionLineage
                 resumeId={resumeId}

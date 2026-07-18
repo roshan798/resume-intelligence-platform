@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { GetResumeService } from "@/modules/resumes/services/get-resume.service";
 
 export async function GET(
     request: Request,
     context: {
         params: Promise<{
-            id: string;
+            resumeId: string;
         }>;
     },
 ) {
@@ -17,28 +17,13 @@ export async function GET(
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const params = await context.params;
-
-    const resume = await prisma.resume.findFirst({
-        where: {
-            id: params.id,
-            userId: session.user.id,
-        },
-    });
+    const { resumeId } = await context.params;
+    const service = new GetResumeService();
+    const resume = await service.execute(session.user.id, resumeId);
 
     if (!resume) {
         return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
 
-    const versions = await prisma.resumeVersion.findMany({
-        where: {
-            resumeId: params.id,
-        },
-
-        orderBy: {
-            versionNumber: "desc",
-        },
-    });
-
-    return NextResponse.json(versions);
+    return NextResponse.json(resume.versions);
 }
