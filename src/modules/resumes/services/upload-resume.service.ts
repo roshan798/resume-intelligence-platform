@@ -45,7 +45,7 @@ export class UploadResumeService {
         try {
             parsed = await this.parser.parse(sourceFormat, buffer);
         } catch (error) {
-            logger.warn({ error, sourceFormat }, "Resume parsing failed");
+            logger.warn({ err: error, sourceFormat }, "Resume parsing failed");
             throw new ResumeUploadError(
                 "RESUME_PARSE_FAILED",
                 this.parserErrorMessage(sourceFormat, error),
@@ -113,7 +113,7 @@ export class UploadResumeService {
             return result;
         } catch (error) {
             logger.error(
-                { storagePath, error },
+                { storagePath, err: error },
                 "Database write failed; deleting uploaded resume asset",
             );
 
@@ -121,7 +121,7 @@ export class UploadResumeService {
                 await this.storage.delete(storagePath);
             } catch (deleteError) {
                 logger.error(
-                    { storagePath, deleteError },
+                    { storagePath, err: deleteError },
                     "Failed to delete orphaned resume asset",
                 );
             }

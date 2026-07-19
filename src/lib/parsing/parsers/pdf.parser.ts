@@ -6,7 +6,7 @@ import { ParsedResume } from "../types";
 
 export class PdfResumeParser implements ResumeParser {
     async parse(fileBuffer: Buffer): Promise<ParsedResume> {
-        const parser = new PDFParse({ data: fileBuffer });
+        const parser = new PDFParse({ data: new Uint8Array(fileBuffer) });
 
         try {
             const result = await parser.getText();
