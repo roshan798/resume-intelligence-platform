@@ -18,10 +18,13 @@ export default async function DashboardPage() {
     const dashboard = await dashboardService.execute(session.user.id);
 
     return (
-        <main className="mx-auto flex max-w-7xl flex-col gap-8 p-8">
+        <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8">
             <DashboardHeader />
 
             <StatsGrid stats={dashboard.stats} />
+            <section className="grid gap-4 border bg-foreground p-6 text-background md:grid-cols-[1fr_auto] md:items-center">
+                <div><p className="text-xs uppercase tracking-[0.2em] opacity-70">Pipeline snapshot</p><h2 className="mt-2 text-2xl font-semibold">{dashboard.stats.totalApplications} tracked roles · {dashboard.stats.averageAtsScore}% average match</h2><p className="mt-2 text-sm opacity-70">You have {dashboard.stats.totalResumes} resumes and {dashboard.stats.aiSuggestionsGenerated} AI suggestions in your workspace.</p></div>
+            </section>
             <div className="grid gap-6 lg:grid-cols-2">
                 <RecentResumes resumes={dashboard.recentResumes} />
 

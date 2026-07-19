@@ -13,7 +13,11 @@ export function QuickActions() {
 
             <CardContent className="grid gap-3">
                 <Button asChild>
-                    <Link href="/resumes">Upload Resume</Link>
+                    <Link href="/applications">Track Applications</Link>
+                </Button>
+
+                <Button asChild>
+                    <Link href="/resumes">Manage Resumes</Link>
                 </Button>
 
                 <Button

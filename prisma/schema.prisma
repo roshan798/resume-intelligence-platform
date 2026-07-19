@@ -388,6 +388,14 @@ model Application {
 
   appliedDate DateTime?
 
+  applicationUrl String?
+
+  location String?
+
+  nextAction String?
+
+  nextActionDate DateTime?
+
   notes String? @db.Text
 
   createdAt DateTime @default(now())
@@ -405,6 +413,7 @@ model Application {
   @@index([userId, status])
   @@index([userId, company])
   @@index([userId, createdAt])
+  @@index([userId, nextActionDate])
   @@index([resumeVersionId])
   @@map("applications")
 }

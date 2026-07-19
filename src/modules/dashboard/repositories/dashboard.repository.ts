@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 export class DashboardRepository {
     async getStats(userId: string) {
-        const [resumes, applications, suggestions, matches] = await Promise.all(
+        const [resumes, applications, activeApplications, interviews, offers, upcomingActions, suggestions, matches] = await Promise.all(
             [
                 prisma.resume.count({
                     where: { userId },
@@ -10,6 +10,21 @@ export class DashboardRepository {
 
                 prisma.application.count({
                     where: { userId },
+                }),
+
+                prisma.application.count({
+                    where: { userId, status: { notIn: ["REJECTED", "CLOSED"] } },
+                }),
+
+                prisma.application.count({ where: { userId, status: "INTERVIEW" } }),
+
+                prisma.application.count({ where: { userId, status: "OFFER" } }),
+
+                prisma.application.count({
+                    where: {
+                        userId,
+                        nextActionDate: { gte: new Date(), lte: new Date(Date.now() + 7 * 86_400_000) },
+                    },
                 }),
 
                 prisma.aISuggestion.count({
@@ -50,6 +65,10 @@ export class DashboardRepository {
             totalApplications: applications,
             aiSuggestionsGenerated: suggestions,
             averageAtsScore: Number(average.toFixed(2)),
+            activeApplications,
+            interviews,
+            offers,
+            upcomingActions,
         };
     }
 
@@ -82,6 +101,18 @@ export class DashboardRepository {
                 createdAt: "desc",
             },
             take: 5,
+            include: {
+                resumeVersion: { select: { resume: { select: { title: true } }, versionNumber: true } },
+            },
+        });
+    }
+
+    async getRecentActivity(userId: string) {
+        return prisma.applicationStatusHistory.findMany({
+            where: { application: { userId } },
+            orderBy: { changedAt: "desc" },
+            take: 6,
+            include: { application: { select: { company: true, roleTitle: true } } },
         });
     }
 }

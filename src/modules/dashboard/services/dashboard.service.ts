@@ -8,10 +8,12 @@ export class DashboardService {
             stats,
             resumes,
             applications,
+            history,
         ] = await Promise.all([
             this.repository.getStats(userId),
             this.repository.getRecentResumes(userId),
             this.repository.getRecentApplications(userId),
+            this.repository.getRecentActivity(userId),
         ]);
 
         const recentResumes = resumes.map((v) => ({
@@ -23,7 +25,12 @@ export class DashboardService {
             stats,
             recentResumes,
             recentApplications: applications,
-            activities: [],
+            activities: history.map((item) => ({
+                id: item.id,
+                title: `${item.application.company} · ${item.application.roleTitle}`,
+                description: `Moved to ${item.status.toLocaleLowerCase().replaceAll("_", " ")}`,
+                createdAt: item.changedAt,
+            })),
         };
     }
 }
