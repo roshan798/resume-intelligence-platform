@@ -24,14 +24,31 @@ export class ResumeParserService {
 
         const extractor = new KeywordExtractor();
 
-        const keywords = extractor.extract(parsed.rawText);
+        const canonicalKeywords: Record<string, string[]> = {};
+
+        for (const [sectionName, sectionContent] of Object.entries(
+            parsed.sections,
+        )) {
+            const text = Array.isArray(sectionContent)
+                ? sectionContent.join("\n")
+                : sectionContent;
+
+            for (const keyword of extractor.extract(text)) {
+                canonicalKeywords[keyword] = [
+                    ...new Set([
+                        ...(canonicalKeywords[keyword] ?? []),
+                        sectionName,
+                    ]),
+                ];
+            }
+        }
 
         return {
             parsedSections: parsed.sections,
 
             rawText: parsed.rawText,
 
-            canonicalKeywords: keywords,
+            canonicalKeywords,
         };
     }
 

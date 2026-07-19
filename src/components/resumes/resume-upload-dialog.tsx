@@ -1,68 +1,107 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+interface UploadResponse {
+    resume?: { id: string };
+    version?: { id: string };
+    message?: string;
+}
+
 export function ResumeUploadDialog() {
+    const router = useRouter();
     const [title, setTitle] = useState("");
     const [primaryStack, setPrimaryStack] = useState("");
+    const [tags, setTags] = useState("");
     const [file, setFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    async function upload() {
-        if (!file || !title) return;
+    async function upload(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (!file || title.trim().length < 3) return;
 
         setLoading(true);
+        setError(null);
 
         try {
             const formData = new FormData();
-
             formData.append("title", title);
             formData.append("primaryStack", primaryStack);
             formData.append("file", file);
+
+            for (const tag of tags.split(",").map((value) => value.trim())) {
+                if (tag) formData.append("tags", tag);
+            }
 
             const response = await fetch("/api/resumes", {
                 method: "POST",
                 body: formData,
             });
+            const body = (await response.json()) as UploadResponse;
 
-            if (!response.ok) {
-                throw new Error();
+            if (!response.ok || !body.resume?.id || !body.version?.id) {
+                throw new Error(body.message || "Unable to upload the resume.");
             }
 
-            window.location.reload();
+            router.push(
+                `/resumes/${body.resume.id}/versions/${body.version.id}`,
+            );
+            router.refresh();
+        } catch (caughtError) {
+            setError(
+                caughtError instanceof Error
+                    ? caughtError.message
+                    : "Unable to upload the resume.",
+            );
         } finally {
             setLoading(false);
         }
     }
 
     return (
-        <div className="rounded-lg border p-6 space-y-4">
+        <form onSubmit={upload} className="space-y-4 rounded-lg border p-6">
             <Input
                 placeholder="Resume title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                maxLength={100}
+                required
+                onChange={(event) => setTitle(event.target.value)}
             />
-
             <Input
                 placeholder="Primary Stack (Spring Boot, MERN...)"
                 value={primaryStack}
-                onChange={(e) => setPrimaryStack(e.target.value)}
+                maxLength={100}
+                onChange={(event) => setPrimaryStack(event.target.value)}
             />
-
+            <Input
+                placeholder="Tags (backend, java, fintech)"
+                value={tags}
+                onChange={(event) => setTags(event.target.value)}
+            />
             <Input
                 type="file"
                 accept=".pdf,.docx,.tex"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                required
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
 
+            {error && (
+                <p role="alert" className="text-sm text-destructive">
+                    {error}
+                </p>
+            )}
+
             <Button
-                onClick={upload}
-                disabled={loading}>
-                {loading ? "Uploading..." : "Upload Resume"}
+                type="submit"
+                disabled={loading || !file || title.trim().length < 3}
+            >
+                {loading ? "Uploading and parsing..." : "Upload Resume"}
             </Button>
-        </div>
+        </form>
     );
 }

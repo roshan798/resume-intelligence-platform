@@ -135,6 +135,68 @@ export class ResumeRepository {
         });
     }
 
+    async createUploadedResume(data: {
+        userId: string;
+        title: string;
+        primaryStack?: string;
+        tags: string[];
+        storageRef: string;
+        mimeType: string;
+        sizeBytes: number;
+        sourceFormat: SourceFormat;
+        rawText: string;
+        latexSource: string | null;
+        parsedSections: Prisma.InputJsonValue;
+        canonicalKeywords: Prisma.InputJsonValue;
+        fingerprintHash: string;
+    }) {
+        return prisma.$transaction(async (transaction) => {
+            const asset = await transaction.fileAsset.create({
+                data: {
+                    userId: data.userId,
+                    storageProvider: "SUPABASE",
+                    storageRef: data.storageRef,
+                    mimeType: data.mimeType,
+                    sizeBytes: data.sizeBytes,
+                },
+            });
+            const resume = await transaction.resume.create({
+                data: {
+                    userId: data.userId,
+                    title: data.title,
+                    primaryStack: data.primaryStack,
+                    tags:
+                        data.tags.length > 0
+                            ? {
+                                  createMany: {
+                                      data: data.tags.map((tag) => ({
+                                          tag,
+                                          scope: "RESUME",
+                                      })),
+                                  },
+                              }
+                            : undefined,
+                },
+            });
+            const version = await transaction.resumeVersion.create({
+                data: {
+                    resumeId: resume.id,
+                    versionNumber: 1,
+                    status: "MASTER",
+                    sourceFormat: data.sourceFormat,
+                    rawText: data.rawText,
+                    latexSource: data.latexSource,
+                    parsedSections: data.parsedSections,
+                    canonicalKeywords: data.canonicalKeywords,
+                    fingerprintHash: data.fingerprintHash,
+                    fileAssetId: asset.id,
+                },
+            });
+
+            return { resume, version };
+        });
+    }
+
     async createVersion(data: {
         resumeId: string;
         fileAssetId: string;
