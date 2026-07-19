@@ -36,6 +36,22 @@ export class ResumeVersionRepository {
         });
     }
 
+    async findTailoredDraft(
+        parentVersionId: string,
+        jdSnapshotId: string,
+        userId: string,
+    ) {
+        return prisma.resumeVersion.findFirst({
+            where: {
+                parentVersionId,
+                jdSnapshotId,
+                status: "TAILORED_DRAFT",
+                resume: { userId },
+            },
+            orderBy: { createdAt: "desc" },
+        });
+    }
+
     async findDetailedVersion(versionId: string, userId: string) {
         return prisma.resumeVersion.findFirst({
             where: {

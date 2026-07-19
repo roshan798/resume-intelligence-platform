@@ -4,7 +4,9 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { AISuggestionService } from "@/modules/ai/services/ai-suggestion.service";
 
-const requestSchema = z.object({ status: z.enum(["ACCEPTED", "REJECTED"]) });
+const requestSchema = z.object({
+    status: z.enum(["ACCEPTED", "REJECTED", "MANUALLY_APPLIED"]),
+});
 
 export async function PATCH(
     request: Request,

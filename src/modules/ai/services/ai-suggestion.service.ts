@@ -85,7 +85,15 @@ Return a JSON object with a recommendations array. Each item must have keyword, 
         return this.repository.findAllByUser(userId);
     }
 
-    updateStatus(id: string, userId: string, status: "ACCEPTED" | "REJECTED") {
+    listForDraft(parentVersionId: string, jdSnapshotId: string, userId: string) {
+        return this.repository.findForDraft(parentVersionId, jdSnapshotId, userId);
+    }
+
+    updateStatus(
+        id: string,
+        userId: string,
+        status: "ACCEPTED" | "REJECTED" | "MANUALLY_APPLIED",
+    ) {
         return this.repository.updateStatus(id, userId, AISuggestionStatus[status]);
     }
 }

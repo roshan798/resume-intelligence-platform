@@ -5,12 +5,18 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 
-export function SuggestionStatusActions({ id }: { id: string }) {
+export function SuggestionStatusActions({
+    id,
+    status = "PROPOSED",
+}: {
+    id: string;
+    status?: "PROPOSED" | "ACCEPTED";
+}) {
     const router = useRouter();
     const [isBusy, setIsBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    async function update(status: "ACCEPTED" | "REJECTED") {
+    async function update(status: "ACCEPTED" | "REJECTED" | "MANUALLY_APPLIED") {
         setIsBusy(true);
         setError(null);
         try {
@@ -31,10 +37,14 @@ export function SuggestionStatusActions({ id }: { id: string }) {
 
     return (
         <div className="space-y-2">
-            <div className="flex gap-2">
-                <Button disabled={isBusy} onClick={() => update("ACCEPTED")}>Accept</Button>
-                <Button disabled={isBusy} variant="outline" onClick={() => update("REJECTED")}>Reject</Button>
-            </div>
+            {status === "PROPOSED" ? (
+                <div className="flex gap-2">
+                    <Button disabled={isBusy} onClick={() => update("ACCEPTED")}>Accept</Button>
+                    <Button disabled={isBusy} variant="outline" onClick={() => update("REJECTED")}>Reject</Button>
+                </div>
+            ) : (
+                <Button disabled={isBusy} variant="outline" onClick={() => update("MANUALLY_APPLIED")}>Mark manually applied</Button>
+            )}
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </div>
     );

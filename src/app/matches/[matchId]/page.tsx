@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
 import { GenerateMatchSuggestionsButton } from "@/components/ai/generate-match-suggestions-button";
+import { CreateTailoredDraftButton } from "@/components/resumes/create-tailored-draft-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,6 +89,13 @@ export default async function MatchPage({ params }: PageProps) {
                         missing and weak skills above. Nothing is applied automatically.
                     </p>
                     <GenerateMatchSuggestionsButton matchResultId={result.id} />
+                    {result.resumeVersion.sourceFormat === "LATEX" && result.resumeVersion.latexSource?.trim() ? (
+                        <CreateTailoredDraftButton matchResultId={result.id} />
+                    ) : (
+                        <p className="text-xs text-muted-foreground">
+                            This resume is {result.resumeVersion.sourceFormat}. Suggestions can be copied and applied manually; automatic application is available only for uploaded LaTeX source.
+                        </p>
+                    )}
                 </CardContent>
             </Card>
         </main>

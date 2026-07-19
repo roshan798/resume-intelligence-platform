@@ -54,7 +54,12 @@ export default async function SuggestionsPage() {
                             <p className="text-xs text-muted-foreground">
                                 Provider: {suggestion.provider} · Model: {suggestion.modelUsed} · Tokens: {suggestion.totalTokens} · Estimated cost: ${(suggestion.estimatedCostMicros / 1_000_000).toFixed(6)}
                             </p>
-                            {suggestion.status === "PROPOSED" ? <SuggestionStatusActions id={suggestion.id} /> : null}
+                            {suggestion.status === "PROPOSED" || suggestion.status === "ACCEPTED" ? (
+                                <SuggestionStatusActions
+                                    id={suggestion.id}
+                                    status={suggestion.status}
+                                />
+                            ) : null}
                         </CardContent>
                     </Card>
                 );

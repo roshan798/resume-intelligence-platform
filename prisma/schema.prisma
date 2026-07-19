@@ -42,6 +42,8 @@ enum AISuggestionStatus {
   PROPOSED
   ACCEPTED
   REJECTED
+  APPLIED
+  MANUALLY_APPLIED
 }
 
 enum AISuggestionType {
