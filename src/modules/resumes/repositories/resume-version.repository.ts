@@ -95,6 +95,57 @@ export class ResumeVersionRepository {
         });
     }
 
+    async findSimilarityTarget(versionId: string, userId: string) {
+        return prisma.resumeVersion.findFirst({
+            where: {
+                id: versionId,
+                resume: {
+                    userId,
+                },
+            },
+            select: {
+                id: true,
+                resumeId: true,
+                parentVersionId: true,
+                versionNumber: true,
+                rawText: true,
+                resume: {
+                    select: {
+                        title: true,
+                    },
+                },
+            },
+        });
+    }
+
+    async findSimilarityCandidates(versionId: string, userId: string) {
+        return prisma.resumeVersion.findMany({
+            where: {
+                id: {
+                    not: versionId,
+                },
+                rawText: {
+                    not: "",
+                },
+                resume: {
+                    userId,
+                },
+            },
+            select: {
+                id: true,
+                resumeId: true,
+                parentVersionId: true,
+                versionNumber: true,
+                rawText: true,
+                resume: {
+                    select: {
+                        title: true,
+                    },
+                },
+            },
+        });
+    }
+
     async getLatestVersionNumber(resumeId: string) {
         const latest = await prisma.resumeVersion.findFirst({
             where: {
