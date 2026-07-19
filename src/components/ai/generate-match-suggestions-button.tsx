@@ -14,13 +14,15 @@ export function GenerateMatchSuggestionsButton({ matchResultId }: { matchResultI
         setIsBusy(true);
         setError(null);
         try {
-            const response = await fetch("/api/ai/suggestions", {
+            const response = await fetch("/api/ai/suggestions/jobs", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ matchResultId }),
             });
-            const body = (await response.json()) as { message?: string };
+            const body = (await response.json()) as { message?: string; jobId?: string };
             if (!response.ok) throw new Error(body.message || "Suggestion generation failed.");
+            if (!body.jobId) throw new Error("The background job was not created.");
+            await waitForJob(body.jobId);
             router.push("/ai/suggestions");
         } catch (error) {
             setError(error instanceof Error ? error.message : "Suggestion generation failed.");
@@ -37,4 +39,15 @@ export function GenerateMatchSuggestionsButton({ matchResultId }: { matchResultI
             {error ? <p className="max-w-md text-sm text-destructive">{error}</p> : null}
         </div>
     );
+}
+
+async function waitForJob(jobId: string) {
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1_000));
+        const response = await fetch(`/api/background-jobs/${jobId}`, { cache: "no-store" });
+        const job = await response.json() as { status?: string; error?: string };
+        if (job.status === "COMPLETED") return;
+        if (job.status === "FAILED") throw new Error(job.error || "Suggestion generation failed.");
+    }
+    throw new Error("Suggestion generation is still running. Check the suggestions page shortly.");
 }

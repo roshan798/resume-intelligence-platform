@@ -21,6 +21,10 @@ export class BackgroundJobRepository {
         });
     }
 
+    findByIdAndUser(id: string, userId: string) {
+        return prisma.backgroundJob.findFirst({ where: { id, userId } });
+    }
+
     findByQueueId(queueJobId: string) {
         return prisma.backgroundJob.findFirst({
             where: {

@@ -19,8 +19,9 @@ export class GroqProvider implements AIProvider {
     async generateText(
         request: GenerateTextRequest,
     ): Promise<GenerateTextResponse> {
+        const model = request.model ?? AIConfig.groq.model!;
         const response = await this.client.chat.completions.create({
-            model: AIConfig.groq.model!,
+            model,
 
             temperature: request.temperature ?? 0.2,
 
@@ -47,7 +48,7 @@ export class GroqProvider implements AIProvider {
         return {
             text: response.choices[0]?.message.content ?? "",
             provider: "GROQ",
-            model: AIConfig.groq.model!,
+            model,
             usage: {
                 promptTokens: response.usage?.prompt_tokens ?? 0,
                 completionTokens: response.usage?.completion_tokens ?? 0,

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 import { auth } from "@/auth";
 import { GenerateTailoredDraftService } from "@/modules/ai/services/generate-tailored-draft.service";
+const schema = z.object({ resume: z.string().min(1).max(30_000), jd: z.string().min(1).max(30_000) });
 
 export async function POST(req: NextRequest) {
     const session = await auth();
@@ -10,14 +12,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const parsed = schema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) return NextResponse.json({ message: "JD and resume text are required and must be under 30,000 characters." }, { status: 422 });
 
     const service = new GenerateTailoredDraftService();
 
     const result = await service.execute(
         {
-            resume: body.resume,
-            jd: body.jd,
+            resume: parsed.data.resume,
+            jd: parsed.data.jd,
         },
         session.user.id,
     );

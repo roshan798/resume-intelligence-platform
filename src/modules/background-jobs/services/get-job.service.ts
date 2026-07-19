@@ -4,8 +4,8 @@ import { BackgroundJobRepository } from "../repositories/background-job.reposito
 export class GetJobService {
     private repository = new BackgroundJobRepository();
 
-    async execute(id: string) {
-        const job = await this.repository.findById(id);
+    async execute(id: string, userId: string) {
+        const job = await this.repository.findByIdAndUser(id, userId);
 
         if (!job) {
             throw new NotFoundError("Background job not found.");

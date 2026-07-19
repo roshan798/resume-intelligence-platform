@@ -3,7 +3,7 @@ import { AIGatewayService } from "./ai-gateway.service";
 export class RewriteBulletsService {
     private readonly gateway = new AIGatewayService();
 
-    async execute(input: { jd: string; bullets: string[] }, _userId: string) {
+    async execute(input: { jd: string; bullets: string[] }, userId: string) {
         const prompt = `
 Job Description:
 
@@ -32,6 +32,7 @@ Rules:
 
         return this.gateway.generate({
             operation: "rewrite-bullets",
+            userId,
             prompt,
             temperature: 0.4,
             maxTokens: 1200,

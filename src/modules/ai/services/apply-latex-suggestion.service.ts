@@ -45,6 +45,7 @@ export class ApplyLatexSuggestionService {
         if (recommendations.length === 0) throw new Error("The suggestion has no applicable recommendations.");
         const response = await this.gateway.generate({
             operation: "apply-latex-suggestion",
+            userId,
             systemPrompt:
                 "You edit resume content in LaTeX using exact anchor replacements. Preserve truthfulness, commands, layout, styling, and the entire preamble. Never add packages or commands that access files or the shell. Return only the requested marker format, without Markdown fences.",
             prompt: `Create minimal LaTeX content patches for the accepted recommendations.

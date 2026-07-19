@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 export class DashboardRepository {
     async getStats(userId: string) {
-        const [resumes, applications, activeApplications, interviews, offers, upcomingActions, suggestions, matches] = await Promise.all(
+        const [resumes, applications, activeApplications, interviews, offers, upcomingActions, suggestions, aiUsage, matches] = await Promise.all(
             [
                 prisma.resume.count({
                     where: { userId },
@@ -42,6 +42,11 @@ export class DashboardRepository {
                     },
                 }),
 
+                prisma.aIUsage.aggregate({
+                    where: { userId },
+                    _sum: { totalTokens: true, estimatedCostMicros: true },
+                }),
+
                 prisma.matchResult.findMany({
                     where: {
                         resumeVersion: {
@@ -69,9 +74,8 @@ export class DashboardRepository {
             totalResumes: resumes,
             totalApplications: applications,
             aiSuggestionsGenerated: suggestions._count.id,
-            aiTokensUsed: suggestions._sum.totalTokens ?? 0,
-            aiEstimatedCostMicros:
-                suggestions._sum.estimatedCostMicros ?? 0,
+            aiTokensUsed: aiUsage._sum.totalTokens ?? 0,
+            aiEstimatedCostMicros: aiUsage._sum.estimatedCostMicros ?? 0,
             averageAtsScore: Number(average.toFixed(2)),
             activeApplications,
             interviews,

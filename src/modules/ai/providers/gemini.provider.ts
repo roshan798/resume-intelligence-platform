@@ -20,8 +20,9 @@ export class GeminiProvider implements AIProvider {
     async generateText(
         request: GenerateTextRequest,
     ): Promise<GenerateTextResponse> {
+        const model = request.model ?? AIConfig.gemini.model!;
         const response = await this.client.models.generateContent({
-            model: AIConfig.gemini.model!,
+            model,
 
             contents: request.prompt,
 
@@ -38,7 +39,7 @@ export class GeminiProvider implements AIProvider {
         return {
             text: response.text ?? "",
             provider: "GEMINI",
-            model: AIConfig.gemini.model!,
+            model,
             usage: {
                 promptTokens: response.usageMetadata?.promptTokenCount ?? 0,
                 completionTokens: response.usageMetadata?.candidatesTokenCount ?? 0,

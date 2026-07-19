@@ -3,7 +3,7 @@ import { AIGatewayService } from "./ai-gateway.service";
 export class GenerateTailoredDraftService {
     private readonly gateway = new AIGatewayService();
 
-    async execute(input: { resume: string; jd: string }, _userId: string) {
+    async execute(input: { resume: string; jd: string }, userId: string) {
         const prompt = `
 You are an ATS resume optimization assistant.
 
@@ -30,6 +30,7 @@ Return markdown only.
 
         return this.gateway.generate({
             operation: "tailored-draft",
+            userId,
             prompt,
             temperature: 0.3,
             maxTokens: 2500,

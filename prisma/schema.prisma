@@ -109,8 +109,43 @@ model User {
   integrations    Integration[]
   backgroundJobs  BackgroundJob[]
   jobDescriptions JobDescription[]
+  aiSettings      AISettings?
+  aiUsage         AIUsage[]
 
   @@map("users")
+}
+
+model AISettings {
+  id String @id @default(uuid())
+  userId String @unique
+  preferredProvider AIProvider @default(GEMINI)
+  fallbackEnabled Boolean @default(true)
+  featureModels Json @default("{}")
+  monthlyTokenLimit Int? @default(200000)
+  monthlyBudgetMicros Int?
+  perRequestMaxTokens Int @default(4000)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("ai_settings")
+}
+
+model AIUsage {
+  id String @id @default(uuid())
+  userId String
+  operation String
+  provider AIProvider
+  modelUsed String
+  promptTokens Int @default(0)
+  completionTokens Int @default(0)
+  totalTokens Int @default(0)
+  estimatedCostMicros Int @default(0)
+  requestId String
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+  @@index([requestId])
+  @@map("ai_usage")
 }
 
 model JobDescription {

@@ -5,7 +5,7 @@ export class GenerateMissingKeywordsService {
 
     async execute(
         input: { resumeText: string; missingKeywords: string[] },
-        _userId: string,
+        userId: string,
     ) {
         const prompt = `
 Resume:
@@ -31,6 +31,7 @@ Return JSON only.
 
         return this.gateway.generate({
             operation: "missing-keywords",
+            userId,
             prompt,
             temperature: 0.2,
             maxTokens: 900,

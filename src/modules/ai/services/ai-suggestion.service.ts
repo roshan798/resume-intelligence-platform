@@ -75,6 +75,7 @@ export class AISuggestionService {
 
         const response = await this.gateway.generate({
             operation: "match-suggestions",
+            userId,
             systemPrompt:
                 "You are a cautious resume advisor. Never invent skills, employers, projects, metrics, or experience. Recommendations are advisory and require explicit user acceptance.",
             prompt: `Create targeted resume recommendations from these deterministic findings.
