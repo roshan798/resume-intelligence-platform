@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
 import { JobDescriptionActions } from "@/components/job-descriptions/job-description-actions";
+import { RunMatchButton } from "@/components/job-descriptions/run-match-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,6 +82,19 @@ export default async function JobDescriptionPage({ params }: PageProps) {
                                 <Badge variant="outline">{snapshot.createdAt.toLocaleString()}</Badge>
                             </CardHeader>
                             <CardContent className="space-y-5">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <RunMatchButton
+                                        snapshotId={snapshot.id}
+                                        hasResults={snapshot._count.matchResults > 0}
+                                    />
+                                    {snapshot._count.matchResults > 0 ? (
+                                        <Button asChild variant="outline">
+                                            <Link href={`/match-results/${snapshot.id}`}>
+                                                View ranked results
+                                            </Link>
+                                        </Button>
+                                    ) : null}
+                                </div>
                                 {keywords.length > 0 ? (
                                     <p className="text-sm text-muted-foreground">
                                         {keywords.length} unique skills

@@ -1,12 +1,10 @@
 import { Prisma } from "@prisma/client";
-import { ScoringService } from "../scoring/scoring.service";
+import {
+    ScoringService,
+    type ScorableJDKeyword,
+} from "../scoring/scoring.service";
 
 // Define the shape of the incoming JD keywords array based on your ScoringService
-interface JDKeyword {
-    keyword: string;
-    importance: number;
-}
-
 // Define the subset shape needed from your database ResumeVersion objects
 interface ResumeVersionInput {
     id: string;
@@ -16,7 +14,10 @@ interface ResumeVersionInput {
 export class MatchEngineService {
     private scoring = new ScoringService();
 
-    execute(jdKeywords: JDKeyword[], resumeVersions: ResumeVersionInput[]) {
+    execute(
+        jdKeywords: ScorableJDKeyword[],
+        resumeVersions: ResumeVersionInput[],
+    ) {
         return (
             resumeVersions
                 .map((version) => {
