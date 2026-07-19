@@ -3,6 +3,10 @@ export interface DashboardStatsDto {
     totalApplications: number;
     averageAtsScore: number;
     aiSuggestionsGenerated: number;
+    activeApplications: number;
+    interviews: number;
+    offers: number;
+    upcomingActions: number;
 }
 
 export interface ActivityItemDto {

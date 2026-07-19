@@ -9,23 +9,23 @@ export function StatsGrid({ stats }: Props) {
     return (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard
-                title="Resumes"
-                value={stats.totalResumes}
+                title="Active applications"
+                value={stats.activeApplications}
             />
 
             <StatCard
-                title="Applications"
-                value={stats.totalApplications}
+                title="Interviews"
+                value={stats.interviews}
             />
 
             <StatCard
-                title="AI Suggestions"
-                value={stats.aiSuggestionsGenerated}
+                title="Offers"
+                value={stats.offers}
             />
 
             <StatCard
-                title="Average ATS"
-                value={`${stats.averageAtsScore}%`}
+                title="Actions due this week"
+                value={stats.upcomingActions}
             />
         </div>
     );

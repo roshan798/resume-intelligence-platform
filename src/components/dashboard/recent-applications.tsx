@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 interface Props {
     applications: {
@@ -17,6 +18,7 @@ export function RecentApplications({ applications }: Props) {
             </CardHeader>
 
             <CardContent className="space-y-4">
+                {applications.length === 0 ? <p className="text-sm text-muted-foreground">No tracked applications yet.</p> : null}
                 {applications.map((application) => (
                     <div
                         key={application.id}
@@ -29,9 +31,10 @@ export function RecentApplications({ applications }: Props) {
                             </p>
                         </div>
 
-                        <span>{application.status}</span>
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground">{application.status}</span>
                     </div>
                 ))}
+                <Link href="/applications" className="inline-block text-sm font-medium underline underline-offset-4">View full pipeline</Link>
             </CardContent>
         </Card>
     );

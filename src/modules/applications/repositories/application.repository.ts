@@ -3,8 +3,15 @@ import { ApplicationStatus, Prisma } from "@prisma/client";
 
 export class ApplicationRepository {
     async create(data: Prisma.ApplicationUncheckedCreateInput) {
-        return prisma.application.create({
-            data,
+        return prisma.$transaction(async (transaction) => {
+            const application = await transaction.application.create({ data });
+            await transaction.applicationStatusHistory.create({
+                data: {
+                    applicationId: application.id,
+                    status: application.status,
+                },
+            });
+            return application;
         });
     }
     async updateStatus(id: string, status: ApplicationStatus, userId: string) {
@@ -34,8 +41,43 @@ export class ApplicationRepository {
                 userId,
             },
             orderBy: {
-                createdAt: "desc",
+                updatedAt: "desc",
+            },
+            include: {
+                resumeVersion: {
+                    select: {
+                        id: true,
+                        versionNumber: true,
+                        resume: { select: { id: true, title: true } },
+                    },
+                },
+                jdAnalysis: {
+                    select: {
+                        id: true,
+                        jobDescriptionId: true,
+                    },
+                },
             },
         });
+    }
+
+    async update(
+        id: string,
+        userId: string,
+        data: Prisma.ApplicationUncheckedUpdateInput,
+    ) {
+        const result = await prisma.application.updateMany({
+            where: { id, userId },
+            data,
+        });
+        if (result.count === 0) return null;
+        return this.findByIdAndUser(id, userId);
+    }
+
+    async delete(id: string, userId: string) {
+        const result = await prisma.application.deleteMany({
+            where: { id, userId },
+        });
+        return result.count > 0;
     }
 }

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { GenerateMatchSuggestionsButton } from "@/components/ai/generate-match-suggestions-button";
 import { CreateTailoredDraftButton } from "@/components/resumes/create-tailored-draft-button";
+import { CreateApplicationButton } from "@/components/applications/create-application-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,6 +97,14 @@ export default async function MatchPage({ params }: PageProps) {
                             This resume is {result.resumeVersion.sourceFormat}. Suggestions can be copied and applied manually; automatic application is available only for uploaded LaTeX source.
                         </p>
                     )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader><CardTitle>Track your application</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Save this role with the exact resume version and job-description snapshot used for this match.</p>
+                    <CreateApplicationButton matchResultId={result.id} />
                 </CardContent>
             </Card>
         </main>

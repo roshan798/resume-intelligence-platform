@@ -4,6 +4,7 @@ interface Props {
     activity: {
         id: string;
         title: string;
+        description: string;
         createdAt: Date;
     }[];
 }
@@ -19,6 +20,8 @@ export function ActivityFeed({ activity }: Props) {
                 {activity.map((item) => (
                     <div key={item.id}>
                         <p>{item.title}</p>
+
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
 
                         <p className="text-xs text-muted-foreground">
                             {new Date(item.createdAt).toLocaleString()}
