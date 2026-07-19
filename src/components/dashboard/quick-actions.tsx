@@ -19,7 +19,7 @@ export function QuickActions() {
                 <Button
                     variant="secondary"
                     asChild>
-                    <Link href="/jd">Analyze JD</Link>
+                    <Link href="/job-descriptions/new">Add Job Description</Link>
                 </Button>
 
                 <Button
