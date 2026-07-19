@@ -11,9 +11,11 @@ import { VersionHeader } from "@/components/resumes/version-header";
 import { VersionInfo } from "@/components/resumes/version-info";
 import { VersionLineage } from "@/components/resumes/version-lineage";
 import { VersionRawText } from "@/components/resumes/version-raw-text";
+import { VersionSimilarity } from "@/components/resumes/version-similarity";
 
 import { GetVersionLineageService } from "@/modules/resumes/services/get-version-lineage.service";
 import { GetVersionService } from "@/modules/resumes/services/get-version.service";
+import { GetVersionSimilarityService } from "@/modules/resumes/services/get-version-similarity.service";
 
 interface ResumeVersionPageProps {
     params: Promise<{
@@ -43,13 +45,15 @@ export default async function ResumeVersionPage({
 
     const versionService = new GetVersionService();
     const lineageService = new GetVersionLineageService();
+    const similarityService = new GetVersionSimilarityService();
 
-    const [version, lineage] = await Promise.all([
+    const [version, lineage, similarity] = await Promise.all([
         versionService.execute(versionId, session.user.id),
         lineageService.execute(resumeId, session.user.id),
+        similarityService.execute(versionId, session.user.id),
     ]);
 
-    if (!version || version.resumeId !== resumeId) {
+    if (!version || !similarity || version.resumeId !== resumeId) {
         notFound();
     }
 
@@ -74,6 +78,8 @@ export default async function ResumeVersionPage({
                 sourceFormat={version.sourceFormat}
                 fileMimeType={version.fileAsset?.mimeType}
             />
+
+            <VersionSimilarity analysis={similarity} />
 
             <VersionLineage
                 resumeId={resumeId}
