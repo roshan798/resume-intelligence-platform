@@ -4,12 +4,12 @@ Production-oriented Next.js application for resume parsing, deterministic job ma
 
 ## Docker stack
 
-The repository includes one multi-stage `Dockerfile` with two runtime targets:
+Production uses `Dockerfile.prod` and `compose.prod.yaml`. The production Dockerfile has two runtime targets:
 
 - `runner`: minimal Next.js standalone web image.
 - `worker`: BullMQ worker image with the source/runtime required for background AI jobs.
 
-`compose.yaml` runs:
+`compose.prod.yaml` runs:
 
 - `app` — Next.js web application on port 3000.
 - `worker` — background AI job processor.
@@ -32,14 +32,14 @@ Copy-Item .env.docker.example .env.docker
 3. Build and start the stack:
 
 ```powershell
-docker compose --env-file .env.docker up --build -d
+docker compose -f compose.prod.yaml --env-file .env.docker up --build -d
 ```
 
 4. Check service status and logs:
 
 ```powershell
-docker compose --env-file .env.docker ps
-docker compose --env-file .env.docker logs -f app worker migrate
+docker compose -f compose.prod.yaml --env-file .env.docker ps
+docker compose -f compose.prod.yaml --env-file .env.docker logs -f app worker migrate
 ```
 
 Open [http://localhost:3000](http://localhost:3000). The application health endpoint is [http://localhost:3000/api/health](http://localhost:3000/api/health).
@@ -48,16 +48,24 @@ Open [http://localhost:3000](http://localhost:3000). The application health endp
 
 ```powershell
 # Stop containers but preserve PostgreSQL and Redis data
-docker compose --env-file .env.docker down
+docker compose -f compose.prod.yaml --env-file .env.docker down
 
 # Stop containers and permanently remove local database/queue volumes
-docker compose --env-file .env.docker down --volumes
+docker compose -f compose.prod.yaml --env-file .env.docker down --volumes
 
 # Rebuild only the web and worker images
-docker compose --env-file .env.docker build app worker
+docker compose -f compose.prod.yaml --env-file .env.docker build app worker
 
 # Run migrations manually
-docker compose --env-file .env.docker run --rm migrate
+docker compose -f compose.prod.yaml --env-file .env.docker run --rm migrate
+```
+
+### Development stack
+
+`Dockerfile.dev` and `compose.dev.yaml` bind-mount the source tree, preserve container dependencies in named volumes, and enable Next.js hot reload:
+
+```powershell
+docker compose -f compose.dev.yaml --env-file .env.docker up --build
 ```
 
 The `down --volumes` command deletes local container data and cannot be undone.

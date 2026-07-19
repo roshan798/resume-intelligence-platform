@@ -1,0 +1,12 @@
+# syntax=docker/dockerfile:1.7
+ARG NODE_VERSION=24.16.0
+FROM node:${NODE_VERSION}-bookworm-slim
+WORKDIR /app
+ENV NODE_ENV=development NEXT_TELEMETRY_DISABLED=1
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended && rm -rf /var/lib/apt/lists/*
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci
+COPY prisma ./prisma
+RUN npx prisma generate
+EXPOSE 3000
+CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]

@@ -1,0 +1,84 @@
+name: resume-intelligence-dev
+
+x-env: &env
+  NODE_ENV: development
+  APP_ENV: development
+  APP_NAME: Resume Intelligence Platform
+  PORT: 3000
+  LOG_LEVEL: ${LOG_LEVEL:-debug}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-resume}:${POSTGRES_PASSWORD:-resume_dev_password}@postgres:5432/${POSTGRES_DB:-resume_intelligence}
+  DIRECT_URL: postgresql://${POSTGRES_USER:-resume}:${POSTGRES_PASSWORD:-resume_dev_password}@postgres:5432/${POSTGRES_DB:-resume_intelligence}
+  REDIS_URL: redis://redis:6379
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  AUTH_SECRET: ${AUTH_SECRET:-development-only-secret-change-me}
+  AUTH_URL: http://localhost:${APP_PORT:-3000}
+  AUTH_TRUST_HOST: "true"
+  MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
+  AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-gemini}
+  AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-30000}
+  AI_RETRY_COUNT: ${AI_RETRY_COUNT:-2}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+  GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+  GROQ_API_KEY: ${GROQ_API_KEY:-}
+  GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+  SUPABASE_URL: ${SUPABASE_URL:-http://localhost:54321}
+  SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-not-configured}
+  SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-not-configured}
+  SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-resumes}
+  WATCHPACK_POLLING: "true"
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-resume}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-resume_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-resume_intelligence}
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
+    volumes: [dev_postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resume} -d ${POSTGRES_DB:-resume_intelligence}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:8.2.7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["${REDIS_PORT_EXTERNAL:-6379}:6379"]
+    volumes: [dev_redis:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  migrate:
+    build: { context: ., dockerfile: Dockerfile.dev }
+    environment: *env
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      postgres: { condition: service_healthy }
+  app:
+    build: { context: ., dockerfile: Dockerfile.dev }
+    environment: *env
+    command: ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
+    ports: ["${APP_PORT:-3000}:3000"]
+    volumes: [.:/app, dev_modules:/app/node_modules, dev_next:/app/.next]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+  worker:
+    build: { context: ., dockerfile: Dockerfile.dev }
+    environment: *env
+    command: ["npm", "run", "workers"]
+    volumes: [.:/app, dev_modules:/app/node_modules]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+volumes:
+  dev_postgres:
+  dev_redis:
+  dev_modules:
+  dev_next:

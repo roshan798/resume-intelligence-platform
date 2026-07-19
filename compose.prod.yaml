@@ -63,6 +63,7 @@ services:
   migrate:
     build:
       context: .
+      dockerfile: Dockerfile.prod
       target: worker
     environment: *app-environment
     command: ["./node_modules/.bin/prisma", "migrate", "deploy"]
@@ -75,6 +76,7 @@ services:
   app:
     build:
       context: .
+      dockerfile: Dockerfile.prod
       target: runner
     restart: unless-stopped
     environment: *app-environment
@@ -97,6 +99,7 @@ services:
   worker:
     build:
       context: .
+      dockerfile: Dockerfile.prod
       target: worker
     restart: unless-stopped
     environment: *app-environment
