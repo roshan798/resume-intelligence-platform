@@ -67,9 +67,13 @@ export default async function JobDescriptionPage({ params }: PageProps) {
             <section className="space-y-5">
                 <h2 className="text-2xl font-semibold">Immutable Snapshots</h2>
                 {jobDescription.snapshots.map((snapshot) => {
-                    const keywords = Array.isArray(snapshot.parsedKeywords)
-                        ? snapshot.parsedKeywords
-                        : [];
+                    const keywords = readKeywords(snapshot.parsedKeywords);
+                    const requiredCount = keywords.filter(
+                        (keyword) => keyword.requirement === "REQUIRED",
+                    ).length;
+                    const preferredCount = keywords.filter(
+                        (keyword) => keyword.requirement === "PREFERRED",
+                    ).length;
                     return (
                         <Card key={snapshot.id}>
                             <CardHeader className="flex-row items-center justify-between gap-3">
@@ -77,14 +81,20 @@ export default async function JobDescriptionPage({ params }: PageProps) {
                                 <Badge variant="outline">{snapshot.createdAt.toLocaleString()}</Badge>
                             </CardHeader>
                             <CardContent className="space-y-5">
+                                {keywords.length > 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        {keywords.length} unique skills
+                                        {requiredCount > 0 ? ` · ${requiredCount} required` : ""}
+                                        {preferredCount > 0 ? ` · ${preferredCount} preferred` : ""}
+                                    </p>
+                                ) : null}
                                 <div className="flex flex-wrap gap-2">
-                                    {keywords.slice(0, 20).map((value, index) => {
-                                        const keyword =
-                                            typeof value === "object" && value !== null && "keyword" in value
-                                                ? String(value.keyword)
-                                                : null;
-                                        return keyword ? <Badge key={`${keyword}-${index}`} variant="secondary">{keyword}</Badge> : null;
-                                    })}
+                                    {keywords.map((keyword) => (
+                                        <Badge key={keyword.key} variant="secondary">
+                                            {keyword.label}
+                                            {keyword.requirement ? ` · ${formatRequirement(keyword.requirement)}` : ""}
+                                        </Badge>
+                                    ))}
                                 </div>
                                 <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded bg-muted p-4 text-sm">
                                     {snapshot.rawText}
@@ -99,6 +109,43 @@ export default async function JobDescriptionPage({ params }: PageProps) {
             </section>
         </main>
     );
+}
+
+interface DisplayKeyword {
+    key: string;
+    label: string;
+    requirement: string | null;
+}
+
+function readKeywords(value: unknown): DisplayKeyword[] {
+    if (!Array.isArray(value)) return [];
+
+    const unique = new Map<string, DisplayKeyword>();
+    for (const item of value) {
+        if (typeof item !== "object" || item === null || !("keyword" in item)) continue;
+
+        const record = item as Record<string, unknown>;
+        const rawKeyword = typeof record.keyword === "string" ? record.keyword : "";
+        const label = typeof record.displayName === "string" ? record.displayName : rawKeyword;
+        const normalized =
+            typeof record.normalizedKeyword === "string"
+                ? record.normalizedKeyword
+                : rawKeyword.toLocaleLowerCase();
+        if (!normalized || unique.has(normalized)) continue;
+
+        unique.set(normalized, {
+            key: normalized,
+            label,
+            requirement:
+                typeof record.requirement === "string" ? record.requirement : null,
+        });
+    }
+
+    return [...unique.values()];
+}
+
+function formatRequirement(value: string): string {
+    return value.charAt(0) + value.slice(1).toLocaleLowerCase();
 }
 
 function Value({ label, value, link = false }: { label: string; value: string | null; link?: boolean }) {
