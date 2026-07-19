@@ -44,7 +44,7 @@ export class ApplyLatexSuggestionService {
         if (recommendations.length === 0) throw new Error("The suggestion has no applicable recommendations.");
         const response = await this.gateway.generate({
             systemPrompt:
-                "You edit resume content in LaTeX using exact anchor replacements. Preserve truthfulness, commands, layout, styling, and the entire preamble. Never add packages or commands that access files or the shell.",
+                "You edit resume content in LaTeX using exact anchor replacements. Preserve truthfulness, commands, layout, styling, and the entire preamble. Never add packages or commands that access files or the shell. Return only the requested marker format, without Markdown fences.",
             prompt: `Create minimal LaTeX content patches for the accepted recommendations.
 
 RECOMMENDATIONS:
@@ -53,12 +53,24 @@ ${JSON.stringify(recommendations)}
 LATEX SOURCE:
 ${draft.latexSource.slice(0, 30000)}
 
-Return JSON with a patches array. targetText must be an exact, unique substring occurring after \\begin{document}. replacementLatex replaces that substring and must preserve the target's existing structure while changing only resume content. Do not target or alter the preamble, styling, section formatting, document class, packages, macros, assets, or commands. Do not invent experience; wording must remain conditional on facts already present.`,
+Return one or more patches using exactly this raw-text format:
+<<<PATCH>>>
+<<<TARGET>>>
+exact LaTeX source substring
+<<</TARGET>>>
+<<<REPLACEMENT>>>
+replacement LaTeX source
+<<</REPLACEMENT>>>
+<<</PATCH>>>
+
+Do not JSON-encode or escape LaTeX backslashes. TARGET must be an exact, unique substring occurring after \\begin{document}. REPLACEMENT replaces that substring and must preserve the target's existing structure while changing only resume content. Do not target or alter the preamble, styling, section formatting, document class, packages, macros, assets, or commands. Do not invent experience; wording must remain conditional on facts already present.`,
             temperature: 0.1,
             maxTokens: 5000,
-            jsonMode: true,
+            jsonMode: false,
         });
-        const generated = patchSchema.parse(JSON.parse(response.text));
+        const generated = patchSchema.parse({
+            patches: parsePatchResponse(response.text),
+        });
         const updatedSource = this.applyPatches(draft.latexSource, generated.patches);
         const parsed = await this.parser.parse("LATEX", Buffer.from(updatedSource, "utf8"));
 
@@ -99,4 +111,30 @@ function readRecommendations(value: unknown): unknown[] {
     if (typeof value !== "object" || value === null || Array.isArray(value)) return [];
     const recommendations = (value as Record<string, unknown>).recommendations;
     return Array.isArray(recommendations) ? recommendations : [];
+}
+
+function parsePatchResponse(
+    value: string,
+): Array<{ targetText: string; replacementLatex: string }> {
+    const patches: Array<{
+        targetText: string;
+        replacementLatex: string;
+    }> = [];
+    const pattern =
+        /<<<PATCH>>>\s*\r?\n<<<TARGET>>>\r?\n([\s\S]*?)\r?\n<<<\/TARGET>>>\s*\r?\n<<<REPLACEMENT>>>\r?\n([\s\S]*?)\r?\n<<<\/REPLACEMENT>>>\s*\r?\n<<<\/PATCH>>>/gu;
+
+    for (const match of value.matchAll(pattern)) {
+        patches.push({
+            targetText: match[1],
+            replacementLatex: match[2],
+        });
+    }
+
+    if (patches.length === 0) {
+        throw new Error(
+            "The AI provider returned an invalid LaTeX patch. Please try applying the suggestion again.",
+        );
+    }
+
+    return patches;
 }
