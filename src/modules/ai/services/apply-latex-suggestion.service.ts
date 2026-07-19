@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { ResumeSimilarityService } from "@/lib/matching/similarity/resume-similarity.service";
 import { ResumeParserService } from "@/lib/parsing/pipeline/resume-parser.service";
+import { logger } from "@/lib/logger";
 import { ResumeVersionRepository } from "@/modules/resumes/repositories/resume-version.repository";
 
 import { AISuggestionRepository } from "../repositories/ai-suggestion.repository";
@@ -63,7 +64,7 @@ replacement LaTeX source
 <<</REPLACEMENT>>>
 <<</PATCH>>>
 
-Do not JSON-encode or escape LaTeX backslashes. TARGET must be an exact, unique substring occurring after \\begin{document}. REPLACEMENT replaces that substring and must preserve the target's existing structure while changing only resume content. Do not target or alter the preamble, styling, section formatting, document class, packages, macros, assets, or commands. Do not invent experience; wording must remain conditional on facts already present.`,
+Do not JSON-encode or escape LaTeX backslashes. TARGET must be an exact, unique substring occurring after \\begin{document}. REPLACEMENT replaces that substring and must preserve the target's existing structure while changing only resume content. Do not target or alter the preamble, styling, section formatting, document class, packages, macros, assets, or commands. Do not invent experience; wording must remain conditional on facts already present. Combine recommendations that modify the same section into one patch. Patch targets must never overlap.`,
             temperature: 0.1,
             maxTokens: 5000,
             jsonMode: false,
@@ -71,10 +72,14 @@ Do not JSON-encode or escape LaTeX backslashes. TARGET must be an exact, unique 
         const generated = patchSchema.parse({
             patches: parsePatchResponse(response.text),
         });
-        const updatedSource = this.applyPatches(draft.latexSource, generated.patches);
+        const updatedSource = this.applyPatches(
+            draft.latexSource,
+            generated.patches,
+            { suggestionId, draftVersionId },
+        );
         const parsed = await this.parser.parse("LATEX", Buffer.from(updatedSource, "utf8"));
 
-        return this.suggestions.applyToLatexDraft({
+        const applied = await this.suggestions.applyToLatexDraft({
             suggestionId,
             draftVersionId,
             latexSource: updatedSource,
@@ -84,27 +89,148 @@ Do not JSON-encode or escape LaTeX backslashes. TARGET must be an exact, unique 
             canonicalKeywords: parsed.canonicalKeywords,
             fingerprintHash: this.similarity.createFingerprint(parsed.rawText),
         });
+
+        logger.info(
+            {
+                suggestionId,
+                draftVersionId,
+                patchCount: generated.patches.length,
+            },
+            "AI suggestions applied to LaTeX draft",
+        );
+
+        return applied;
     }
 
-    private applyPatches(source: string, patches: Array<{ targetText: string; replacementLatex: string }>) {
-        let updated = source;
-        for (const patch of patches) {
+    private applyPatches(
+        source: string,
+        patches: Array<{ targetText: string; replacementLatex: string }>,
+        context: { suggestionId: string; draftVersionId: string },
+    ) {
+        const normalizedSource = normalizeLineEndings(source);
+        const documentStart = normalizedSource.indexOf("\\begin{document}");
+        if (documentStart < 0) {
+            logger.error(context, "LaTeX draft has no document start marker");
+            throw new Error("The LaTeX draft has no \\begin{document} marker.");
+        }
+
+        const resolved = patches.map((patch, patchIndex) => {
             if (forbiddenLatex.test(patch.replacementLatex)) {
+                logger.warn(
+                    { ...context, patchIndex },
+                    "Rejected AI LaTeX patch containing a protected command",
+                );
                 throw new Error("The generated patch attempted to change protected LaTeX commands.");
             }
-            const documentStart = updated.indexOf("\\begin{document}");
-            const first = updated.indexOf(patch.targetText);
-            const last = updated.lastIndexOf(patch.targetText);
-            if (documentStart < 0 || first <= documentStart || first !== last) {
-                throw new Error("The generated patch did not identify one safe document-body target.");
+            const target = normalizeLineEndings(patch.targetText);
+            const matches = findTargetMatches(
+                normalizedSource,
+                target,
+                documentStart,
+            );
+            if (matches.length !== 1) {
+                logger.warn(
+                    {
+                        ...context,
+                        patchIndex,
+                        matchCount: matches.length,
+                        targetLength: target.length,
+                        targetPreview: target.slice(0, 160).replaceAll("\n", "\\n"),
+                    },
+                    "AI LaTeX patch target was not uniquely matched in document body",
+                );
+                throw new Error(
+                    matches.length === 0
+                        ? `Patch ${patchIndex + 1} could not find its target in the LaTeX body. The AI changed the anchor text; please try again.`
+                        : `Patch ${patchIndex + 1} matched ${matches.length} places in the LaTeX body. It was not applied because the target is ambiguous.`,
+                );
             }
-            updated = `${updated.slice(0, first)}${patch.replacementLatex}${updated.slice(first + patch.targetText.length)}`;
+            const match = matches[0];
+            return {
+                ...match,
+                patchIndex,
+                replacement: normalizeLineEndings(patch.replacementLatex),
+            };
+        });
+
+        const byPosition = [...resolved].sort(
+            (first, second) => first.index - second.index,
+        );
+        for (let index = 1; index < byPosition.length; index += 1) {
+            const previous = byPosition[index - 1];
+            const current = byPosition[index];
+            if (current.index < previous.index + previous.length) {
+                logger.warn(
+                    {
+                        ...context,
+                        firstPatchIndex: previous.patchIndex,
+                        secondPatchIndex: current.patchIndex,
+                    },
+                    "Rejected overlapping AI LaTeX patches",
+                );
+                throw new Error(
+                    `Patches ${previous.patchIndex + 1} and ${current.patchIndex + 1} target overlapping LaTeX content. Nothing was changed; please try again.`,
+                );
+            }
         }
-        if (updated.slice(0, updated.indexOf("\\begin{document}")) !== source.slice(0, source.indexOf("\\begin{document}"))) {
+
+        let updated = normalizedSource;
+        for (const patch of resolved.sort(
+            (first, second) => second.index - first.index,
+        )) {
+            updated = `${updated.slice(0, patch.index)}${patch.replacement}${updated.slice(patch.index + patch.length)}`;
+        }
+        if (updated.slice(0, updated.indexOf("\\begin{document}")) !== normalizedSource.slice(0, normalizedSource.indexOf("\\begin{document}"))) {
+            logger.error(context, "Rejected AI LaTeX patch that changed the preamble");
             throw new Error("The LaTeX preamble cannot be modified by resume suggestions.");
         }
         return updated;
     }
+}
+
+function normalizeLineEndings(value: string): string {
+    return value.replace(/\r\n?/gu, "\n");
+}
+
+function findTargetMatches(
+    source: string,
+    target: string,
+    documentStart: number,
+): Array<{ index: number; length: number }> {
+    const bodyStart = documentStart + "\\begin{document}".length;
+    const body = source.slice(bodyStart);
+    const exactMatches = findExactMatches(body, target).map((match) => ({
+        index: match.index + bodyStart,
+        length: match.length,
+    }));
+    if (exactMatches.length > 0) return exactMatches;
+
+    const tokens = target.trim().split(/\s+/u).filter(Boolean);
+    if (tokens.length === 0) return [];
+    const flexiblePattern = tokens.map(escapeRegExp).join("\\s+");
+    return [...body.matchAll(new RegExp(flexiblePattern, "gu"))].map(
+        (match) => ({
+            index: (match.index ?? 0) + bodyStart,
+            length: match[0].length,
+        }),
+    );
+}
+
+function findExactMatches(
+    source: string,
+    target: string,
+): Array<{ index: number; length: number }> {
+    const matches: Array<{ index: number; length: number }> = [];
+    let position = source.indexOf(target);
+    while (position >= 0) {
+        matches.push({ index: position, length: target.length });
+        position = source.indexOf(target, position + Math.max(target.length, 1));
+    }
+    return matches;
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
 
 function readRecommendations(value: unknown): unknown[] {
