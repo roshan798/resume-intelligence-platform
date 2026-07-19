@@ -12,7 +12,9 @@ export function ResumePdfPreview({
     fileMimeType,
 }: ResumePdfPreviewProps) {
     const canPreview =
-        sourceFormat === "PDF" && fileMimeType?.toLowerCase() === "application/pdf";
+        sourceFormat === "LATEX" ||
+        (sourceFormat === "PDF" &&
+            fileMimeType?.toLowerCase() === "application/pdf");
 
     return (
         <Card>
@@ -24,12 +26,12 @@ export function ResumePdfPreview({
                     <iframe
                         className="h-[70vh] min-h-96 w-full rounded-md border bg-muted"
                         src={`/api/resumes/versions/${encodeURIComponent(versionId)}/preview`}
-                        title="Resume PDF preview"
+                        title={sourceFormat === "LATEX" ? "Compiled LaTeX resume preview" : "Resume PDF preview"}
                     />
                 ) : (
                     <div className="rounded-md border border-dashed p-6 text-sm text-muted-foreground">
-                        PDF preview is unavailable for this version. Use the raw text
-                        or LaTeX view below instead.
+                        PDF preview is unavailable for this version. Upload a PDF or a
+                        compilable LaTeX source with its required .cls/.sty file.
                     </div>
                 )}
             </CardContent>

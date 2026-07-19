@@ -146,6 +146,8 @@ export class ResumeRepository {
         sourceFormat: SourceFormat;
         rawText: string;
         latexSource: string | null;
+        latexStyleSource: string | null;
+        latexStyleFilename: string | null;
         parsedSections: Prisma.InputJsonValue;
         canonicalKeywords: Prisma.InputJsonValue;
         fingerprintHash: string;
@@ -186,6 +188,8 @@ export class ResumeRepository {
                     sourceFormat: data.sourceFormat,
                     rawText: data.rawText,
                     latexSource: data.latexSource,
+                    latexStyleSource: data.latexStyleSource,
+                    latexStyleFilename: data.latexStyleFilename,
                     parsedSections: data.parsedSections,
                     canonicalKeywords: data.canonicalKeywords,
                     fingerprintHash: data.fingerprintHash,

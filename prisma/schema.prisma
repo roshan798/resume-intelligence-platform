@@ -202,6 +202,9 @@ model ResumeVersion {
 
   latexSource String? @db.Text
 
+  latexStyleSource   String? @db.Text
+  latexStyleFilename String?
+
   parsedSections Json
 
   canonicalKeywords Json

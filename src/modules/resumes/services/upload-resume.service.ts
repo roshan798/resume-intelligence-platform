@@ -8,6 +8,7 @@ import { ResumeUploadError } from "@/modules/resumes/errors/resume-upload.error"
 import { ResumeRepository } from "@/modules/resumes/repositories/resume.repository";
 import {
     validateFile,
+    validateLatexStyleFile,
     type ResumeSourceFormat,
 } from "@/modules/resumes/validations/upload-resume.schema";
 
@@ -24,6 +25,7 @@ export class UploadResumeService {
             primaryStack?: string;
             tags?: string[];
             file: File;
+            styleFile?: File;
         },
     ) {
         let sourceFormat: ResumeSourceFormat;
@@ -39,6 +41,33 @@ export class UploadResumeService {
 
         const buffer = Buffer.from(await input.file.arrayBuffer());
         this.validateFileSignature(buffer, sourceFormat);
+        let latexStyleSource: string | null = null;
+        let latexStyleFilename: string | null = null;
+        if (input.styleFile) {
+            if (sourceFormat !== "LATEX") {
+                throw new ResumeUploadError(
+                    "INVALID_LATEX_STYLE",
+                    "A .cls or .sty file can only accompany a LaTeX resume.",
+                );
+            }
+            try {
+                validateLatexStyleFile(input.styleFile);
+            } catch (error) {
+                throw new ResumeUploadError(
+                    "INVALID_LATEX_STYLE",
+                    error instanceof Error ? error.message : "Invalid LaTeX style file.",
+                );
+            }
+            const styleBuffer = Buffer.from(await input.styleFile.arrayBuffer());
+            if (styleBuffer.includes(0)) {
+                throw new ResumeUploadError(
+                    "INVALID_LATEX_STYLE",
+                    "The LaTeX style file must contain text only.",
+                );
+            }
+            latexStyleSource = styleBuffer.toString("utf8");
+            latexStyleFilename = input.styleFile.name;
+        }
 
         let parsed: Awaited<ReturnType<ResumeParserService["parse"]>>;
 
@@ -102,6 +131,8 @@ export class UploadResumeService {
                 rawText: parsed.rawText,
                 latexSource:
                     sourceFormat === "LATEX" ? buffer.toString("utf8") : null,
+                latexStyleSource,
+                latexStyleFilename,
                 parsedSections: {
                     summary: parsed.parsedSections.summary,
                     skills: parsed.parsedSections.skills,

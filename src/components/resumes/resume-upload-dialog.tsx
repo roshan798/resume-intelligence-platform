@@ -18,6 +18,7 @@ export function ResumeUploadDialog() {
     const [primaryStack, setPrimaryStack] = useState("");
     const [tags, setTags] = useState("");
     const [file, setFile] = useState<File | null>(null);
+    const [styleFile, setStyleFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +34,7 @@ export function ResumeUploadDialog() {
             formData.append("title", title);
             formData.append("primaryStack", primaryStack);
             formData.append("file", file);
+            if (styleFile) formData.append("styleFile", styleFile);
 
             for (const tag of tags.split(",").map((value) => value.trim())) {
                 if (tag) formData.append("tags", tag);
@@ -72,6 +74,20 @@ export function ResumeUploadDialog() {
                 required
                 onChange={(event) => setTitle(event.target.value)}
             />
+            <div className="space-y-1">
+                <label className="text-sm font-medium" htmlFor="latex-style-file">
+                    Optional LaTeX style (.cls or .sty)
+                </label>
+                <Input
+                    id="latex-style-file"
+                    type="file"
+                    accept=".cls,.sty"
+                    onChange={(event) => setStyleFile(event.target.files?.[0] ?? null)}
+                />
+                <p className="text-xs text-muted-foreground">
+                    Used only with a .tex resume. For example, upload resume.cls with a document that uses \\documentclass{'{resume}'}.
+                </p>
+            </div>
             <Input
                 placeholder="Primary Stack (Spring Boot, MERN...)"
                 value={primaryStack}

@@ -26,6 +26,8 @@ export class ForkVersionService {
             canonicalKeywords:
                 source.canonicalKeywords as Prisma.InputJsonValue,
             latexSource: source.latexSource,
+            latexStyleSource: source.latexStyleSource,
+            latexStyleFilename: source.latexStyleFilename,
             fileAssetId: source.fileAssetId,
             fingerprintHash: source.fingerprintHash,
             jdSnapshotId,
