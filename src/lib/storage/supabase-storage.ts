@@ -10,11 +10,16 @@ export class SupabaseStorage implements FileStorage {
 
     async upload(input: UploadFileInput): Promise<UploadFileResult> {
         const { file, path } = input;
+        const contentType = input.contentType ?? file.type;
+        const uploadBody: File | Blob =
+            file.type === contentType
+                ? file
+                : new Blob([await file.arrayBuffer()], { type: contentType });
 
         const { error } = await supabaseAdmin.storage
             .from(this.bucket)
-            .upload(path, file, {
-                contentType: file.type,
+            .upload(path, uploadBody, {
+                contentType,
                 upsert: false,
             });
 
@@ -25,7 +30,7 @@ export class SupabaseStorage implements FileStorage {
         return {
             storageRef: path,
             sizeBytes: file.size,
-            mimeType: file.type,
+            mimeType: contentType,
         };
     }
 
