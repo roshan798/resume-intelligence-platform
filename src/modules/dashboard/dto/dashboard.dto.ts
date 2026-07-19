@@ -7,6 +7,8 @@ export interface DashboardStatsDto {
     interviews: number;
     offers: number;
     upcomingActions: number;
+    aiTokensUsed: number;
+    aiEstimatedCostMicros: number;
 }
 
 export interface ActivityItemDto {

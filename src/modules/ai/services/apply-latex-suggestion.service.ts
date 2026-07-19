@@ -44,6 +44,7 @@ export class ApplyLatexSuggestionService {
         const recommendations = readRecommendations(suggestion.outputPayload);
         if (recommendations.length === 0) throw new Error("The suggestion has no applicable recommendations.");
         const response = await this.gateway.generate({
+            operation: "apply-latex-suggestion",
             systemPrompt:
                 "You edit resume content in LaTeX using exact anchor replacements. Preserve truthfulness, commands, layout, styling, and the entire preamble. Never add packages or commands that access files or the shell. Return only the requested marker format, without Markdown fences.",
             prompt: `Create minimal LaTeX content patches for the accepted recommendations.
@@ -66,8 +67,9 @@ replacement LaTeX source
 
 Do not JSON-encode or escape LaTeX backslashes. TARGET must be an exact, unique substring occurring after \\begin{document}. REPLACEMENT replaces that substring and must preserve the target's existing structure while changing only resume content. Do not target or alter the preamble, styling, section formatting, document class, packages, macros, assets, or commands. Do not invent experience; wording must remain conditional on facts already present. Combine recommendations that modify the same section into one patch. Patch targets must never overlap.`,
             temperature: 0.1,
-            maxTokens: 5000,
+            maxTokens: 3500,
             jsonMode: false,
+            timeoutMs: 40_000,
         });
         const generated = patchSchema.parse({
             patches: parsePatchResponse(response.text),

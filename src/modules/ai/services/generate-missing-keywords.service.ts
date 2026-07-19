@@ -1,13 +1,12 @@
-import { AIProvider } from "@/shared/enums/ai-provider.enum";
-import { AIProviderFactory } from "../factory/ai-provider.factory";
+import { AIGatewayService } from "./ai-gateway.service";
 
 export class GenerateMissingKeywordsService {
+    private readonly gateway = new AIGatewayService();
+
     async execute(
         input: { resumeText: string; missingKeywords: string[] },
         _userId: string,
     ) {
-        const provider = AIProviderFactory.create(AIProvider.GROQ);
-
         const prompt = `
 Resume:
 
@@ -30,9 +29,13 @@ Return JSON only.
 }
 `;
 
-        return provider.generateText({
+        return this.gateway.generate({
+            operation: "missing-keywords",
             prompt,
             temperature: 0.2,
+            maxTokens: 900,
+            jsonMode: true,
+            timeoutMs: 20_000,
         });
     }
 }

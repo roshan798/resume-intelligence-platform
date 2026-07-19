@@ -353,6 +353,9 @@ model AISuggestion {
 
   modelUsed String
 
+  promptVersion String?
+  cacheKey      String? @unique
+
   promptTokens        Int @default(0)
   completionTokens    Int @default(0)
   totalTokens         Int @default(0)
@@ -368,6 +371,7 @@ model AISuggestion {
   @@index([resumeVersionId])
   @@index([resumeVersionId, featureType])
   @@index([status, createdAt])
+  @@index([resumeVersionId, jdAnalysisId, promptVersion])
   @@map("ai_suggestions")
 }
 

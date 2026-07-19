@@ -1,11 +1,9 @@
-import { AIProvider } from "@/shared/enums/ai-provider.enum";
-import { AIProviderFactory } from "../factory/ai-provider.factory";
+import { AIGatewayService } from "./ai-gateway.service";
 
 export class RewriteBulletsService {
-    async execute(input: { jd: string; bullets: string[] }, _userId: string) {
-        // const provider = AIProviderFactory.create(AIProviderFactory.getDefaultProvider());
-        const provider = AIProviderFactory.create(AIProvider.GROQ);
+    private readonly gateway = new AIGatewayService();
 
+    async execute(input: { jd: string; bullets: string[] }, _userId: string) {
         const prompt = `
 Job Description:
 
@@ -32,9 +30,13 @@ Rules:
 }
 `;
 
-        return provider.generateText({
+        return this.gateway.generate({
+            operation: "rewrite-bullets",
             prompt,
             temperature: 0.4,
+            maxTokens: 1200,
+            jsonMode: true,
+            timeoutMs: 25_000,
         });
     }
 }

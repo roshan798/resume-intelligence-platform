@@ -25,6 +25,15 @@ export class AISuggestionRepository {
         return prisma.aISuggestion.create({ data });
     }
 
+    findByCacheKey(cacheKey: string, userId: string) {
+        return prisma.aISuggestion.findFirst({
+            where: {
+                cacheKey,
+                resumeVersion: { resume: { userId } },
+            },
+        });
+    }
+
     findAllByUser(userId: string) {
         return prisma.aISuggestion.findMany({
             where: { resumeVersion: { resume: { userId } } },
