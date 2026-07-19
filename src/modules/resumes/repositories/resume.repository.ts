@@ -9,6 +9,15 @@ export class ResumeRepository {
             },
 
             include: {
+                tags: {
+                    where: {
+                        scope: "RESUME",
+                        resumeVersionId: null,
+                    },
+                    orderBy: {
+                        tag: "asc",
+                    },
+                },
                 versions: {
                     include: {
                         matchResults: true,
@@ -26,6 +35,66 @@ export class ResumeRepository {
         });
     }
 
+    async updateMetadataAndTags(
+        userId: string,
+        resumeId: string,
+        data: {
+            title: string;
+            primaryStack: string | null;
+            tags: string[];
+        },
+    ) {
+        return prisma.$transaction(async (transaction) => {
+            const updateResult = await transaction.resume.updateMany({
+                where: {
+                    id: resumeId,
+                    userId,
+                },
+                data: {
+                    title: data.title,
+                    primaryStack: data.primaryStack,
+                },
+            });
+
+            if (updateResult.count === 0) return null;
+
+            await transaction.resumeTag.deleteMany({
+                where: {
+                    resumeId,
+                    scope: "RESUME",
+                    resumeVersionId: null,
+                },
+            });
+
+            if (data.tags.length > 0) {
+                await transaction.resumeTag.createMany({
+                    data: data.tags.map((tag) => ({
+                        resumeId,
+                        tag,
+                        scope: "RESUME",
+                    })),
+                });
+            }
+
+            return transaction.resume.findUnique({
+                where: {
+                    id: resumeId,
+                },
+                include: {
+                    tags: {
+                        where: {
+                            scope: "RESUME",
+                            resumeVersionId: null,
+                        },
+                        orderBy: {
+                            tag: "asc",
+                        },
+                    },
+                },
+            });
+        });
+    }
+
     async findById(userId: string, resumeId: string) {
         return prisma.resume.findFirst({
             where: {
@@ -34,6 +103,15 @@ export class ResumeRepository {
             },
 
             include: {
+                tags: {
+                    where: {
+                        scope: "RESUME",
+                        resumeVersionId: null,
+                    },
+                    orderBy: {
+                        tag: "asc",
+                    },
+                },
                 versions: {
                     include: {
                         matchResults: true,
