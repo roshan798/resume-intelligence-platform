@@ -35,9 +35,13 @@ export function validateFile(file: File): ResumeSourceFormat {
     }
     if (
         extension === "tex" &&
-        ["text/x-tex", "application/x-tex", "text/plain", ""].includes(
-            file.type,
-        )
+        [
+            "text/x-tex",
+            "application/x-tex",
+            "application/octet-stream",
+            "text/plain",
+            "",
+        ].includes(file.type.toLowerCase())
     ) {
         return "LATEX";
     }
