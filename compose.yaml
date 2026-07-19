@@ -1,0 +1,117 @@
+name: resume-intelligence
+
+x-app-environment: &app-environment
+  NODE_ENV: production
+  APP_ENV: production
+  APP_NAME: Resume Intelligence Platform
+  PORT: 3000
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-resume}:${POSTGRES_PASSWORD:-resume_local_password}@postgres:5432/${POSTGRES_DB:-resume_intelligence}
+  DIRECT_URL: postgresql://${POSTGRES_USER:-resume}:${POSTGRES_PASSWORD:-resume_local_password}@postgres:5432/${POSTGRES_DB:-resume_intelligence}
+  REDIS_URL: redis://redis:6379
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  AUTH_SECRET: ${AUTH_SECRET:-replace-with-a-long-random-secret}
+  AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+  AUTH_TRUST_HOST: "true"
+  MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
+  AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-gemini}
+  AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-30000}
+  AI_RETRY_COUNT: ${AI_RETRY_COUNT:-2}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+  GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+  GROQ_API_KEY: ${GROQ_API_KEY:-}
+  GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+  SUPABASE_URL: ${SUPABASE_URL:-http://localhost:54321}
+  SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-not-configured}
+  SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-not-configured}
+  SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-resumes}
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-resume}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-resume_local_password}
+      POSTGRES_DB: ${POSTGRES_DB:-resume_intelligence}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resume} -d ${POSTGRES_DB:-resume_intelligence}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  redis:
+    image: redis:8.2.7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+
+  migrate:
+    build:
+      context: .
+      target: worker
+    environment: *app-environment
+    command: ["./node_modules/.bin/prisma", "migrate", "deploy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks: [backend]
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment: *app-environment
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    stop_grace_period: 20s
+    networks: [backend]
+
+  worker:
+    build:
+      context: .
+      target: worker
+    restart: unless-stopped
+    environment: *app-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    stop_grace_period: 30s
+    networks: [backend]
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  backend:
+    driver: bridge

@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Resume Intelligence Platform
 
-## Getting Started
+Production-oriented Next.js application for resume parsing, deterministic job matching, AI-assisted LaTeX tailoring, semantic search, and application tracking.
 
-First, run the development server:
+## Docker stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The repository includes one multi-stage `Dockerfile` with two runtime targets:
+
+- `runner`: minimal Next.js standalone web image.
+- `worker`: BullMQ worker image with the source/runtime required for background AI jobs.
+
+`compose.yaml` runs:
+
+- `app` — Next.js web application on port 3000.
+- `worker` — background AI job processor.
+- `redis` — durable BullMQ queue storage.
+- `postgres` — PostgreSQL 17 with pgvector 0.8.2.
+- `migrate` — one-shot Prisma migration service that must succeed before app/worker startup.
+
+Both application images include a restricted `pdflatex` runtime for LaTeX resume previews. File storage remains external through Supabase Storage.
+
+### Start locally
+
+1. Copy the container environment template:
+
+```powershell
+Copy-Item .env.docker.example .env.docker
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Set a strong `AUTH_SECRET`, Supabase credentials, and at least one Gemini or Groq key in `.env.docker`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Build and start the stack:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+docker compose --env-file .env.docker up --build -d
+```
 
-## Learn More
+4. Check service status and logs:
 
-To learn more about Next.js, take a look at the following resources:
+```powershell
+docker compose --env-file .env.docker ps
+docker compose --env-file .env.docker logs -f app worker migrate
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000). The application health endpoint is [http://localhost:3000/api/health](http://localhost:3000/api/health).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Common operations
 
-## Deploy on Vercel
+```powershell
+# Stop containers but preserve PostgreSQL and Redis data
+docker compose --env-file .env.docker down
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Stop containers and permanently remove local database/queue volumes
+docker compose --env-file .env.docker down --volumes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Rebuild only the web and worker images
+docker compose --env-file .env.docker build app worker
+
+# Run migrations manually
+docker compose --env-file .env.docker run --rm migrate
+```
+
+The `down --volumes` command deletes local container data and cannot be undone.
+
+## Running without Docker
+
+Install Node.js 24, PostgreSQL with pgvector, Redis, and a TeX Live distribution containing `pdflatex`. Then run:
+
+```powershell
+npm ci
+npx prisma generate
+npx prisma migrate deploy
+npm run dev
+```
+
+Run the worker in a second terminal:
+
+```powershell
+npm run workers
+```
+
+## Production notes
+
+- Put a reverse proxy or managed load balancer in front of port 3000.
+- Do not use the example database password or `AUTH_SECRET` outside local development.
+- Do not bake API keys into images; provide them at container runtime.
+- Back up the PostgreSQL volume and Supabase Storage independently.
+- The built-in request limiter is per web process. Multi-replica deployments should move rate-limit counters to Redis or an edge gateway.
+- Scale workers independently from the web service when AI queue volume grows.
