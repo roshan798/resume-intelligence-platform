@@ -111,6 +111,18 @@ export class ResumeVersionRepository {
         });
     }
 
+    async findLatexPreviewSource(versionId: string, userId: string) {
+        return prisma.resumeVersion.findFirst({
+            where: { id: versionId, resume: { userId } },
+            select: {
+                sourceFormat: true,
+                latexSource: true,
+                latexStyleSource: true,
+                latexStyleFilename: true,
+            },
+        });
+    }
+
     async findSimilarityTarget(versionId: string, userId: string) {
         return prisma.resumeVersion.findFirst({
             where: {

@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     try {
         const formData = await request.formData();
         const file = formData.get("file");
+        const styleFileValue = formData.get("styleFile");
         const metadata = uploadResumeSchema.safeParse({
             title: formData.get("title"),
             primaryStack: formData.get("primaryStack") || undefined,
@@ -53,6 +54,10 @@ export async function POST(request: Request) {
         const result = await service.execute(session.user.id, {
             ...metadata.data,
             file,
+            styleFile:
+                styleFileValue instanceof File && styleFileValue.size > 0
+                    ? styleFileValue
+                    : undefined,
         });
 
         return NextResponse.json(result, { status: 201 });

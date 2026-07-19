@@ -8,6 +8,10 @@ import {
     PreviewUnsupportedError,
     PreviewVersionService,
 } from "@/modules/resumes/services/preview-version.service";
+import {
+    CompileLatexPreviewService,
+    LatexPreviewError,
+} from "@/modules/resumes/services/compile-latex-preview.service";
 
 interface RouteContext {
     params: Promise<{
@@ -23,6 +27,31 @@ export async function GET(_request: Request, context: RouteContext) {
     }
 
     const { id } = await context.params;
+    try {
+        const latexPdf = await new CompileLatexPreviewService().execute(
+            id,
+            session.user.id,
+        );
+        if (latexPdf) {
+            return new Response(new Uint8Array(latexPdf), {
+                headers: {
+                    "Content-Type": "application/pdf",
+                    "Content-Disposition": "inline; filename=resume-preview.pdf",
+                    "Cache-Control": "private, no-store",
+                    "X-Content-Type-Options": "nosniff",
+                },
+            });
+        }
+    } catch (error) {
+        if (error instanceof LatexPreviewError) {
+            return NextResponse.json({ message: error.message }, { status: 422 });
+        }
+        return NextResponse.json(
+            { message: "Unable to compile the LaTeX preview." },
+            { status: 502 },
+        );
+    }
+
     const service = new PreviewVersionService(
         new ResumeVersionRepository(),
         new SupabaseStorage(),

@@ -50,3 +50,24 @@ export function validateFile(file: File): ResumeSourceFormat {
         "Unsupported file type or mismatched extension. Upload a PDF, DOCX, or LaTeX file.",
     );
 }
+
+export function validateLatexStyleFile(file: File): "CLS" | "STY" {
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    const maxSize = 1024 * 1024;
+    if (file.size === 0 || file.size > maxSize) {
+        throw new Error("The LaTeX style file must be between 1 byte and 1MB.");
+    }
+    if (
+        !["cls", "sty"].includes(extension ?? "") ||
+        ![
+            "text/x-tex",
+            "application/x-tex",
+            "application/octet-stream",
+            "text/plain",
+            "",
+        ].includes(file.type.toLowerCase())
+    ) {
+        throw new Error("Upload a valid .cls or .sty LaTeX style file.");
+    }
+    return extension === "cls" ? "CLS" : "STY";
+}
