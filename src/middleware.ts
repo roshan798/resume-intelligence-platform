@@ -41,6 +41,7 @@ export const config = {
         "/settings/:path*",
         "/matches/:path*",
         "/match-results/:path*",
+        "/semantic-search/:path*",
         "/login",
         "/register",
     ],

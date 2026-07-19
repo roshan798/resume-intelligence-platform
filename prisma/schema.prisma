@@ -348,6 +348,11 @@ model AISuggestion {
 
   modelUsed String
 
+  promptTokens        Int @default(0)
+  completionTokens    Int @default(0)
+  totalTokens         Int @default(0)
+  estimatedCostMicros Int @default(0)
+
   createdAt DateTime @default(now())
 
   resumeVersion ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
@@ -357,6 +362,7 @@ model AISuggestion {
   @@index([provider])
   @@index([resumeVersionId])
   @@index([resumeVersionId, featureType])
+  @@index([status, createdAt])
   @@map("ai_suggestions")
 }
 

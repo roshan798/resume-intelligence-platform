@@ -1,14 +1,15 @@
-import { OpenAIEmbeddingProvider } from "../../embeddings/providers/openai-embedding.provider";
+import { GeminiEmbeddingProvider } from "@/modules/embeddings/providers/gemini-embedding.provider";
 import { SemanticSearchRepository } from "../repositories/semantic-search.repository";
+import { SemanticIndexService } from "./semantic-index.service";
 
 export class SearchSimilarJDsService {
-    private repository = new SemanticSearchRepository();
-
-    private provider = new OpenAIEmbeddingProvider();
+    private readonly repository = new SemanticSearchRepository();
+    private readonly provider = new GeminiEmbeddingProvider();
+    private readonly index = new SemanticIndexService();
 
     async execute(query: string, userId: string) {
-        const embeddingResult = await this.provider.generateEmbedding(query);
-
-        return this.repository.findSimilarJDs(embeddingResult.embedding, userId);
+        await this.index.ensureJDIndex(userId);
+        const result = await this.provider.generateEmbedding(query);
+        return this.repository.findSimilarJDs(result.embedding, userId);
     }
 }

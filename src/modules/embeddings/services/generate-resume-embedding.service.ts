@@ -1,12 +1,6 @@
-// import { GeminiEmbeddingProvider } from "../providers/gemini-embedding.provider";
-
-import { OpenAIEmbeddingProvider } from "../providers/openai-embedding.provider";
+import { GeminiEmbeddingProvider } from "../providers/gemini-embedding.provider";
 
 export class GenerateResumeEmbeddingService {
-    // private provider = new GeminiEmbeddingProvider();
-    private provider = new OpenAIEmbeddingProvider()
-
-    async execute(resumeText: string) {
-        return this.provider.generateEmbedding(resumeText);
-    }
+    private readonly provider = new GeminiEmbeddingProvider();
+    execute(resumeText: string) { return this.provider.generateEmbedding(resumeText); }
 }

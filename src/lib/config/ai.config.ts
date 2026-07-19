@@ -9,5 +9,8 @@ export const AIConfig = {
     gemini: {
         apiKey: env.GEMINI_API_KEY,
         model: env.GEMINI_MODEL,
+        embeddingModel: env.GEMINI_EMBEDDING_MODEL ?? "gemini-embedding-001",
+        embeddingDimensions: 1536,
     },
+    defaultProvider: env.AI_DEFAULT_PROVIDER,
 };

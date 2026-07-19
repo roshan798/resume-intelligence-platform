@@ -1,25 +1,31 @@
+import { AIConfig } from "@/lib/config/ai.config";
 import { AIProvider as AIProviderEnum } from "@/shared/enums/ai-provider.enum";
 
 import { AIProviderFactory } from "../factory/ai-provider.factory";
-
-import { GenerateTextRequest } from "../types/generate-text-request";
+import type { GenerateTextRequest } from "../types/generate-text-request";
 
 export class AIGatewayService {
     async generate(request: GenerateTextRequest) {
-        const providers = [AIProviderEnum.GROQ, AIProviderEnum.GEMINI];
+        const preferred =
+            AIConfig.defaultProvider === "gemini"
+                ? AIProviderEnum.GEMINI
+                : AIProviderEnum.GROQ;
+        const fallback =
+            preferred === AIProviderEnum.GROQ
+                ? AIProviderEnum.GEMINI
+                : AIProviderEnum.GROQ;
+        let lastError: unknown;
 
-        let lastError;
-
-        for (const provider of providers) {
+        for (const provider of [preferred, fallback]) {
             try {
-                const client = AIProviderFactory.create(provider);
-
-                return await client.generateText(request);
+                return await AIProviderFactory.create(provider).generateText(request);
             } catch (error) {
                 lastError = error;
             }
         }
 
-        throw lastError;
+        throw lastError instanceof Error
+            ? lastError
+            : new Error("No configured AI provider is available.");
     }
 }
