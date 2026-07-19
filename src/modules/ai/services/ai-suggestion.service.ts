@@ -4,7 +4,10 @@ import {
     AISuggestionType,
     type Prisma,
 } from "@prisma/client";
+import { createHash } from "node:crypto";
 import { z } from "zod";
+
+import { logger } from "@/lib/logger";
 
 import { AISuggestionRepository } from "../repositories/ai-suggestion.repository";
 import { AIGatewayService } from "./ai-gateway.service";
@@ -21,6 +24,8 @@ const outputSchema = z.object({
     ).max(20),
 });
 
+const PROMPT_VERSION = "missing-keywords-v2";
+
 export class AISuggestionService {
     private readonly repository = new AISuggestionRepository();
     private readonly gateway = new AIGatewayService();
@@ -35,7 +40,41 @@ export class AISuggestionService {
             throw new Error("This match has no missing or weak keywords to address.");
         }
 
+        const cacheKey = createHash("sha256")
+            .update(
+                JSON.stringify({
+                    promptVersion: PROMPT_VERSION,
+                    matchResultId: context.id,
+                    resumeVersionId: context.resumeVersion.id,
+                    jdAnalysisId: context.jdAnalysis.id,
+                    missingKeywords,
+                    weakKeywords,
+                }),
+            )
+            .digest("hex");
+        const cached = await this.repository.findByCacheKey(cacheKey, userId);
+        if (cached) {
+            logger.info(
+                { cacheKey, suggestionId: cached.id, matchResultId },
+                "Reused cached AI suggestion",
+            );
+            return cached;
+        }
+
+        const relevantKeywords = [...new Set([...missingKeywords, ...weakKeywords])];
+        const jobContext = compactContext(
+            context.jdAnalysis.rawText,
+            relevantKeywords,
+            5_000,
+        );
+        const resumeContext = compactContext(
+            context.resumeVersion.rawText,
+            relevantKeywords,
+            5_000,
+        );
+
         const response = await this.gateway.generate({
+            operation: "match-suggestions",
             systemPrompt:
                 "You are a cautious resume advisor. Never invent skills, employers, projects, metrics, or experience. Recommendations are advisory and require explicit user acceptance.",
             prompt: `Create targeted resume recommendations from these deterministic findings.
@@ -44,15 +83,16 @@ Missing keywords: ${missingKeywords.join(", ") || "None"}
 Weakly placed keywords: ${weakKeywords.join(", ") || "None"}
 
 JOB DESCRIPTION:
-${context.jdAnalysis.rawText.slice(0, 12000)}
+${jobContext}
 
 CURRENT RESUME:
-${context.resumeVersion.rawText.slice(0, 12000)}
+${resumeContext}
 
 Return a JSON object with a recommendations array. Each item must have keyword, reason, suggestedSection (summary, skills, experience, or projects), suggestion, and safetyNote. For a missing skill, explicitly tell the user to add it only if they genuinely possess that experience. Do not rewrite the resume and do not claim unsupported experience.`,
             temperature: 0.2,
-            maxTokens: 3000,
+            maxTokens: 1200,
             jsonMode: true,
+            timeoutMs: 30_000,
         });
         const parsed = outputSchema.parse(JSON.parse(response.text));
         const usage = response.usage ?? {
@@ -74,6 +114,8 @@ Return a JSON object with a recommendations array. Each item must have keyword, 
             status: AISuggestionStatus.PROPOSED,
             provider: response.provider === "GEMINI" ? AIProvider.GEMINI : AIProvider.GROQ,
             modelUsed: response.model,
+            promptVersion: PROMPT_VERSION,
+            cacheKey,
             promptTokens: usage.promptTokens,
             completionTokens: usage.completionTokens,
             totalTokens: usage.totalTokens,
@@ -96,6 +138,33 @@ Return a JSON object with a recommendations array. Each item must have keyword, 
     ) {
         return this.repository.updateStatus(id, userId, AISuggestionStatus[status]);
     }
+}
+
+function compactContext(
+    text: string,
+    keywords: string[],
+    maxCharacters: number,
+): string {
+    if (text.length <= maxCharacters) return text;
+    const normalizedKeywords = keywords.map((keyword) => keyword.toLocaleLowerCase());
+    const lines = text.split(/\r?\n/u).map((line, index) => ({
+        line: line.trim(),
+        index,
+        score: normalizedKeywords.reduce(
+            (score, keyword) =>
+                score + (line.toLocaleLowerCase().includes(keyword) ? 1 : 0),
+            0,
+        ),
+    })).filter((item) => item.line);
+    const selected = lines
+        .sort((first, second) => second.score - first.score || first.index - second.index)
+        .reduce<typeof lines>((result, item) => {
+            const length = result.reduce((sum, entry) => sum + entry.line.length + 1, 0);
+            if (length + item.line.length <= maxCharacters) result.push(item);
+            return result;
+        }, [])
+        .sort((first, second) => first.index - second.index);
+    return selected.map((item) => item.line).join("\n");
 }
 
 function readStrings(value: unknown): string[] {

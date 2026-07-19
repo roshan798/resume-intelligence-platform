@@ -27,13 +27,18 @@ export class DashboardRepository {
                     },
                 }),
 
-                prisma.aISuggestion.count({
+                prisma.aISuggestion.aggregate({
                     where: {
                         resumeVersion: {
                             resume: {
                                 userId,
                             },
                         },
+                    },
+                    _count: { id: true },
+                    _sum: {
+                        totalTokens: true,
+                        estimatedCostMicros: true,
                     },
                 }),
 
@@ -63,7 +68,10 @@ export class DashboardRepository {
         return {
             totalResumes: resumes,
             totalApplications: applications,
-            aiSuggestionsGenerated: suggestions,
+            aiSuggestionsGenerated: suggestions._count.id,
+            aiTokensUsed: suggestions._sum.totalTokens ?? 0,
+            aiEstimatedCostMicros:
+                suggestions._sum.estimatedCostMicros ?? 0,
             averageAtsScore: Number(average.toFixed(2)),
             activeApplications,
             interviews,

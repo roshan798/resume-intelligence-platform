@@ -1,10 +1,9 @@
-import { AIProvider } from "@/shared/enums/ai-provider.enum";
-import { AIProviderFactory } from "../factory/ai-provider.factory";
+import { AIGatewayService } from "./ai-gateway.service";
 
 export class GenerateTailoredDraftService {
-    async execute(input: { resume: string; jd: string }, _userId: string) {
-        const provider = AIProviderFactory.create(AIProvider.GROQ);
+    private readonly gateway = new AIGatewayService();
 
+    async execute(input: { resume: string; jd: string }, _userId: string) {
         const prompt = `
 You are an ATS resume optimization assistant.
 
@@ -29,9 +28,12 @@ Rules:
 Return markdown only.
 `;
 
-        return provider.generateText({
+        return this.gateway.generate({
+            operation: "tailored-draft",
             prompt,
             temperature: 0.3,
+            maxTokens: 2500,
+            timeoutMs: 40_000,
         });
     }
 }

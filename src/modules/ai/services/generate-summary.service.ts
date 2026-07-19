@@ -1,10 +1,9 @@
-import { AIProvider } from "@/shared/enums/ai-provider.enum";
-import { AIProviderFactory } from "../factory/ai-provider.factory";
+import { AIGatewayService } from "./ai-gateway.service";
 
 export class GenerateSummaryService {
-    async execute(input: { jd: string; resume: string }, _userId: string) {
-        const provider = AIProviderFactory.create(AIProvider.GROQ);
+    private readonly gateway = new AIGatewayService();
 
+    async execute(input: { jd: string; resume: string }, _userId: string) {
         const prompt = `
 Generate an ATS optimized professional summary.
 
@@ -21,9 +20,12 @@ Requirements:
 - Human readable
 `;
 
-        return provider.generateText({
+        return this.gateway.generate({
+            operation: "generate-summary",
             prompt,
             temperature: 0.5,
+            maxTokens: 500,
+            timeoutMs: 20_000,
         });
     }
 }

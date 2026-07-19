@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { AISuggestionService } from "@/modules/ai/services/ai-suggestion.service";
+import { logger } from "@/lib/logger";
 
 const requestSchema = z.object({ matchResultId: z.uuid() });
 
@@ -26,6 +27,14 @@ export async function POST(request: Request) {
         if (!suggestion) return NextResponse.json({ message: "Match result not found." }, { status: 404 });
         return NextResponse.json(suggestion, { status: 201 });
     } catch (error) {
+        logger.error(
+            {
+                err: error,
+                matchResultId: parsed.data.matchResultId,
+                userId: session.user.id,
+            },
+            "AI suggestion generation failed",
+        );
         return NextResponse.json(
             { message: error instanceof Error ? error.message : "Suggestion generation failed." },
             { status: 422 },

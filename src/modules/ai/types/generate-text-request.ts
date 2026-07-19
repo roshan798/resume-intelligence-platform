@@ -1,4 +1,7 @@
 export interface GenerateTextRequest {
+    operation?: string;
+
+    requestId?: string;
     systemPrompt?: string;
 
     prompt: string;
@@ -8,4 +11,6 @@ export interface GenerateTextRequest {
     maxTokens?: number;
 
     jsonMode?: boolean;
+
+    timeoutMs?: number;
 }
