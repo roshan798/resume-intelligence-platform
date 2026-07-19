@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ResumeMetadataEditor } from "@/components/resumes/resume-metadata-editor";
 
 import { GetResumeService } from "@/modules/resumes/services/get-resume.service";
 
@@ -47,6 +48,13 @@ export default async function ResumePage({ params }: Props) {
                     <Link href="/resumes">Back</Link>
                 </Button>
             </div>
+
+            <ResumeMetadataEditor
+                resumeId={resume.id}
+                initialTitle={resume.title}
+                initialPrimaryStack={resume.primaryStack}
+                initialTags={resume.tags}
+            />
 
             <Card>
                 <CardHeader>

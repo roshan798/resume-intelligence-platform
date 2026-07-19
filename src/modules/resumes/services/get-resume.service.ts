@@ -12,6 +12,7 @@ export class GetResumeService {
             primaryStack: resume.primaryStack,
             createdAt: resume.createdAt,
             updatedAt: resume.updatedAt,
+            tags: resume.tags.map((tag) => tag.tag),
             versions: resume.versions.map((version) => ({
                 id: version.id,
                 versionNumber: version.versionNumber,
