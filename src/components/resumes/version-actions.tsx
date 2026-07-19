@@ -26,7 +26,12 @@ interface ErrorResponse {
     message?: string;
 }
 
-type VersionAction = "fork" | "finalize" | "archive" | "delete";
+type VersionAction =
+    | "fork"
+    | "finalize"
+    | "archive"
+    | "reparse"
+    | "delete";
 
 export function VersionActions({
     versionId,
@@ -163,15 +168,26 @@ export function VersionActions({
                 )}
 
                 {hasLatexSource && (
-                    <Button
-                        type="button"
-                        variant="outline"
-                        asChild>
-                        <a
-                            href={`/api/resumes/versions/${versionId}/download?format=tex`}>
-                            Download LaTeX
-                        </a>
-                    </Button>
+                    <>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            asChild>
+                            <a
+                                href={`/api/resumes/versions/${versionId}/download?format=tex`}>
+                                Download LaTeX
+                            </a>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={isPending}
+                            onClick={() => runVersionAction("reparse")}>
+                            {pendingAction === "reparse"
+                                ? "Reparsing..."
+                                : "Reparse Sections"}
+                        </Button>
+                    </>
                 )}
 
                 {!isArchived && (

@@ -228,6 +228,19 @@ export class ResumeVersionRepository {
         });
     }
 
+    async updateParsedContent(
+        id: string,
+        data: Pick<
+            Prisma.ResumeVersionUncheckedUpdateInput,
+            | "rawText"
+            | "parsedSections"
+            | "canonicalKeywords"
+            | "fingerprintHash"
+        >,
+    ) {
+        return prisma.resumeVersion.update({ where: { id }, data });
+    }
+
     async archive(id: string) {
         return prisma.resumeVersion.update({
             where: {
