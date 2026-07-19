@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { ApplyLatexSuggestionService } from "@/modules/ai/services/apply-latex-suggestion.service";
 
 export async function POST(
@@ -15,6 +16,15 @@ export async function POST(
         if (!version) return NextResponse.json({ message: "Suggestion or draft not found." }, { status: 404 });
         return NextResponse.json({ id: version.id, status: "APPLIED" });
     } catch (error) {
+        logger.error(
+            {
+                err: error,
+                draftVersionId: id,
+                suggestionId,
+                userId: session.user.id,
+            },
+            "Failed to apply AI suggestion to LaTeX draft",
+        );
         return NextResponse.json(
             { message: error instanceof Error ? error.message : "Unable to apply suggestion." },
             { status: 422 },
