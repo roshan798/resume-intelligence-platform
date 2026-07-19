@@ -1,6 +1,7 @@
 export interface UploadFileInput {
     path: string;
     file: File;
+    contentType?: string;
 }
 
 export interface UploadFileResult {

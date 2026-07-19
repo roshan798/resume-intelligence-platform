@@ -70,10 +70,24 @@ export class UploadResumeService {
                     .filter(Boolean),
             ),
         ];
-        const uploadResult = await this.storage.upload({
-            path: storagePath,
-            file: input.file,
-        });
+        let uploadResult: Awaited<ReturnType<SupabaseStorage["upload"]>>;
+        try {
+            uploadResult = await this.storage.upload({
+                path: storagePath,
+                file: input.file,
+                contentType: this.canonicalMimeType(sourceFormat),
+            });
+        } catch (error) {
+            logger.error(
+                { err: error, sourceFormat },
+                "Resume storage upload failed",
+            );
+            throw new ResumeUploadError(
+                "RESUME_STORAGE_FAILED",
+                "The resume was parsed but could not be stored. Please try again.",
+                502,
+            );
+        }
 
         try {
             const result = await this.resumeRepository.createUploadedResume({
@@ -146,6 +160,17 @@ export class UploadResumeService {
                 "INVALID_FILE_SIGNATURE",
                 "The file contents do not match the selected resume format.",
             );
+        }
+    }
+
+    private canonicalMimeType(sourceFormat: ResumeSourceFormat): string {
+        switch (sourceFormat) {
+            case "PDF":
+                return "application/pdf";
+            case "DOCX":
+                return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case "LATEX":
+                return "text/x-tex";
         }
     }
 
