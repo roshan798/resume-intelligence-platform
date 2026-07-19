@@ -10,6 +10,17 @@ export class MatchResultRepository {
         });
     }
 
+    async replaceForAnalysis(
+        jdAnalysisId: string,
+        data: Prisma.MatchResultCreateManyInput[],
+    ) {
+        return prisma.$transaction(async (transaction) => {
+            await transaction.matchResult.deleteMany({ where: { jdAnalysisId } });
+            if (data.length === 0) return { count: 0 };
+            return transaction.matchResult.createMany({ data });
+        });
+    }
+
     async getByAnalysisAndUser(jdAnalysisId: string, userId: string) {
         return prisma.matchResult.findMany({
             where: {

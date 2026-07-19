@@ -1,48 +1,70 @@
+import type { Prisma } from "@prisma/client";
+
 import { MatchEngineService } from "@/lib/matching/engine/match-engine.service";
+import type { ScorableJDKeyword } from "@/lib/matching/scoring/scoring.service";
+import { JDAnalysisRepository } from "@/modules/jd/repositories/jd-analysis.repository";
 import { ResumeVersionRepository } from "@/modules/resumes/repositories/resume-version.repository";
+
 import { MatchResultRepository } from "../repositories/match-result.repository";
-import { Prisma } from "@prisma/client";
 
 export class RunMatchAnalysisService {
-    private engine = new MatchEngineService();
-    private resumes = new ResumeVersionRepository();
-    private matches = new MatchResultRepository();
+    private readonly engine = new MatchEngineService();
+    private readonly jdAnalyses = new JDAnalysisRepository();
+    private readonly resumes = new ResumeVersionRepository();
+    private readonly matches = new MatchResultRepository();
 
-    // Fix 1: Add type for parsedKeywords parameter
-    async execute(
-        jdAnalysisId: string,
-        parsedKeywords: Prisma.JsonValue,
-        userId: string,
-    ) {
+    async execute(jdAnalysisId: string, userId: string) {
+        const analysis = await this.jdAnalyses.findByIdAndUser(
+            jdAnalysisId,
+            userId,
+        );
+        if (!analysis) return null;
+
+        const jdKeywords = this.readKeywords(analysis.parsedKeywords);
         const resumeVersions = await this.resumes.getActiveVersions(userId);
-
-        // Safely cast parsedKeywords to the array format expected by the match engine
-        const jdKeywordsArray = parsedKeywords as {
-            keyword: string;
-            importance: number;
-        }[];
-
-        // Fix 2: Use the existing .execute method on the engine passing the arrays direct
-        const engineResults = this.engine.execute(
-            jdKeywordsArray,
-            resumeVersions,
+        const engineResults = this.engine.execute(jdKeywords, resumeVersions);
+        const results: Prisma.MatchResultCreateManyInput[] = engineResults.map(
+            (result) => ({
+                jdAnalysisId,
+                resumeVersionId: result.resumeVersionId,
+                overallScore: result.overallScore,
+                matchedKeywords: result.matchedKeywords,
+                missingKeywords: result.missingKeywords,
+                weakKeywords: result.weakKeywords,
+                sectionScores:
+                    result.sectionScores as unknown as Prisma.InputJsonValue,
+                formattingHealth: {},
+            }),
         );
 
-        // Map the structured scoring array into database rows matching your schema constraints
-        const results = engineResults.map((result) => ({
-            jdAnalysisId,
-            resumeVersionId: result.resumeVersionId,
-            overallScore: result.overallScore,
-            matchedKeywords: result.matchedKeywords,
-            missingKeywords: result.missingKeywords,
-            weakKeywords: result.weakKeywords,
-            sectionScores: {}, // Matches schema requirements
-            formattingHealth: {}, // Matches schema requirements
-        }));
+        await this.matches.replaceForAnalysis(jdAnalysisId, results);
+        return { count: results.length };
+    }
 
-        // Write the records to the database in a single transaction-safe batch operation
-        await this.matches.createMany(results);
+    private readKeywords(value: Prisma.JsonValue): ScorableJDKeyword[] {
+        if (!Array.isArray(value)) return [];
 
-        return results;
+        return value.flatMap((item) => {
+            if (typeof item !== "object" || item === null || Array.isArray(item)) {
+                return [];
+            }
+            const keyword = item.keyword;
+            const importance = item.importance;
+            const requirement = item.requirement;
+            if (typeof keyword !== "string" || typeof importance !== "number") {
+                return [];
+            }
+
+            return [{
+                keyword,
+                importance,
+                requirement:
+                    requirement === "REQUIRED" ||
+                    requirement === "PREFERRED" ||
+                    requirement === "CONTEXT"
+                        ? requirement
+                        : undefined,
+            }];
+        });
     }
 }
