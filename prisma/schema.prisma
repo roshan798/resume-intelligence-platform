@@ -80,6 +80,11 @@ enum BackgroundJobStatus {
   FAILED
 }
 
+enum JobDescriptionStatus {
+  ACTIVE
+  ARCHIVED
+}
+
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -95,14 +100,35 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  resumes        Resume[]
-  jdAnalyses     JDAnalysis[]
-  applications   Application[]
-  fileAssets     FileAsset[]
-  integrations   Integration[]
-  backgroundJobs BackgroundJob[]
+  resumes         Resume[]
+  jdAnalyses      JDAnalysis[]
+  applications    Application[]
+  fileAssets      FileAsset[]
+  integrations    Integration[]
+  backgroundJobs  BackgroundJob[]
+  jobDescriptions JobDescription[]
 
   @@map("users")
+}
+
+model JobDescription {
+  id                     String               @id @default(uuid())
+  userId                 String
+  company                String?
+  roleTitle              String
+  location               String?
+  sourceUrl              String?
+  experienceRequirements String?              @db.Text
+  status                 JobDescriptionStatus @default(ACTIVE)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshots JDAnalysis[]
+
+  @@index([userId, status, updatedAt])
+  @@index([userId, company])
+  @@map("job_descriptions")
 }
 
 model Session {
@@ -238,6 +264,10 @@ model JDAnalysis {
 
   userId String
 
+  jobDescriptionId String?
+
+  snapshotNumber Int @default(1)
+
   rawText String @db.Text
 
   company String?
@@ -252,6 +282,8 @@ model JDAnalysis {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  jobDescription JobDescription? @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
+
   matchResults MatchResult[]
 
   resumeVersions ResumeVersion[]
@@ -260,7 +292,9 @@ model JDAnalysis {
 
   aiSuggestions AISuggestion[]
 
+  @@unique([jobDescriptionId, snapshotNumber])
   @@index([userId, createdAt])
+  @@index([jobDescriptionId])
   @@index([company])
   @@index([roleTitle])
   @@map("jd_analyses")
