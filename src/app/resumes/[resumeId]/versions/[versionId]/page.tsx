@@ -12,10 +12,15 @@ import { VersionInfo } from "@/components/resumes/version-info";
 import { VersionLineage } from "@/components/resumes/version-lineage";
 import { VersionRawText } from "@/components/resumes/version-raw-text";
 import { VersionSimilarity } from "@/components/resumes/version-similarity";
+import {
+    LatexSuggestionPanel,
+    type DraftSuggestion,
+} from "@/components/resumes/latex-suggestion-panel";
 
 import { GetVersionLineageService } from "@/modules/resumes/services/get-version-lineage.service";
 import { GetVersionService } from "@/modules/resumes/services/get-version.service";
 import { GetVersionSimilarityService } from "@/modules/resumes/services/get-version-similarity.service";
+import { AISuggestionService } from "@/modules/ai/services/ai-suggestion.service";
 
 interface ResumeVersionPageProps {
     params: Promise<{
@@ -59,6 +64,18 @@ export default async function ResumeVersionPage({
 
     const parsedSections = toRecord(version.parsedSections);
     const canonicalKeywords = toRecord(version.canonicalKeywords);
+    const linkedSuggestions =
+        version.status === "TAILORED_DRAFT" &&
+        version.sourceFormat === "LATEX" &&
+        version.parentVersionId &&
+        version.jdSnapshotId
+            ? await new AISuggestionService().listForDraft(
+                  version.parentVersionId,
+                  version.jdSnapshotId,
+                  session.user.id,
+              )
+            : [];
+    const draftSuggestions = linkedSuggestions.map(toDraftSuggestion);
 
     return (
         <main className="container mx-auto max-w-7xl space-y-8 px-4 py-8">
@@ -86,6 +103,13 @@ export default async function ResumeVersionPage({
                 versions={lineage}
             />
 
+            {version.status === "TAILORED_DRAFT" && version.sourceFormat === "LATEX" ? (
+                <LatexSuggestionPanel
+                    versionId={version.id}
+                    suggestions={draftSuggestions}
+                />
+            ) : null}
+
             {version.status === "TAILORED_DRAFT" ? (
                 <VersionEditor
                     versionId={version.id}
@@ -104,4 +128,34 @@ export default async function ResumeVersionPage({
             <ParsedSections parsedSections={parsedSections} />
         </main>
     );
+}
+
+function toDraftSuggestion(suggestion: {
+    id: string;
+    status: string;
+    outputPayload: unknown;
+}): DraftSuggestion {
+    const output = toRecord(suggestion.outputPayload);
+    const rawRecommendations = Array.isArray(output?.recommendations)
+        ? output.recommendations
+        : [];
+    const recommendations = rawRecommendations.flatMap((item) => {
+        const record = toRecord(item);
+        if (!record) return [];
+        const keyword = typeof record.keyword === "string" ? record.keyword : "Suggestion";
+        const suggestedSection = typeof record.suggestedSection === "string" ? record.suggestedSection : "content";
+        const suggestionText = typeof record.suggestion === "string" ? record.suggestion : "";
+        const safetyNote = typeof record.safetyNote === "string" ? record.safetyNote : "Confirm that the content is accurate.";
+        if (!suggestionText) return [];
+        return [{ keyword, suggestedSection, suggestion: suggestionText, safetyNote }];
+    });
+
+    return {
+        id: suggestion.id,
+        status:
+            suggestion.status === "APPLIED" || suggestion.status === "MANUALLY_APPLIED"
+                ? suggestion.status
+                : "ACCEPTED",
+        recommendations,
+    };
 }
