@@ -7,9 +7,14 @@ import { GenerateTextResponse } from "../types/generate-text-response";
 import { AIConfig } from "@/lib/config/ai.config";
 
 export class GroqProvider implements AIProvider {
-    private client = new Groq({
-        apiKey: AIConfig.groq.apiKey,
-    });
+    private client: Groq;
+
+    constructor() {
+        if (!AIConfig.groq.apiKey || !AIConfig.groq.model) {
+            throw new Error("Groq generation is not configured.");
+        }
+        this.client = new Groq({ apiKey: AIConfig.groq.apiKey });
+    }
 
     async generateText(
         request: GenerateTextRequest,
@@ -20,6 +25,7 @@ export class GroqProvider implements AIProvider {
             temperature: request.temperature ?? 0.2,
 
             max_completion_tokens: request.maxTokens ?? 4096,
+            response_format: request.jsonMode ? { type: "json_object" } : undefined,
 
             messages: [
                 ...(request.systemPrompt
@@ -40,7 +46,6 @@ export class GroqProvider implements AIProvider {
 
         return {
             text: response.choices[0]?.message.content ?? "",
-            // TODO use enums for provider and model
             provider: "GROQ",
             model: AIConfig.groq.model!,
             usage: {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
+import { GenerateMatchSuggestionsButton } from "@/components/ai/generate-match-suggestions-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,6 +77,17 @@ export default async function MatchPage({ params }: PageProps) {
                     Skills or Experience contributes more than a mention in Education
                     or another low-signal section. Matching is deterministic and does
                     not infer skills that are absent from the resume.
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader><CardTitle>Optional AI assistance</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                    <p className="text-sm leading-6 text-muted-foreground">
+                        Generate advisory wording and placement ideas from the deterministic
+                        missing and weak skills above. Nothing is applied automatically.
+                    </p>
+                    <GenerateMatchSuggestionsButton matchResultId={result.id} />
                 </CardContent>
             </Card>
         </main>

@@ -24,7 +24,7 @@ export const envSchema = z.object({
 
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]),
 
-    AI_DEFAULT_PROVIDER: z.enum(["groq", "gemini", "openai", "anthropic"]),
+    AI_DEFAULT_PROVIDER: z.enum(["groq", "gemini"]),
 
     // Fix: Coerce strings from process.env into numbers
     AI_TIMEOUT_MS: z.coerce.number().min(1),
@@ -37,6 +37,7 @@ export const envSchema = z.object({
 
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().optional(),
+    GEMINI_EMBEDDING_MODEL: z.string().optional(),
     OPENAI_API_KEY: z.string().optional(),
 
     ANTHROPIC_API_KEY: z.string().optional(),

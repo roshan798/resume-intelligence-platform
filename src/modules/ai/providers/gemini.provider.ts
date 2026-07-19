@@ -8,9 +8,14 @@ import { GenerateTextResponse } from "../types/generate-text-response";
 import { AIConfig } from "@/lib/config/ai.config";
 
 export class GeminiProvider implements AIProvider {
-    private client = new GoogleGenAI({
-        apiKey: AIConfig.gemini.apiKey,
-    });
+    private client: GoogleGenAI;
+
+    constructor() {
+        if (!AIConfig.gemini.apiKey || !AIConfig.gemini.model) {
+            throw new Error("Gemini generation is not configured.");
+        }
+        this.client = new GoogleGenAI({ apiKey: AIConfig.gemini.apiKey });
+    }
 
     async generateText(
         request: GenerateTextRequest,
@@ -26,6 +31,7 @@ export class GeminiProvider implements AIProvider {
                 maxOutputTokens: request.maxTokens ?? 4096,
 
                 systemInstruction: request.systemPrompt,
+                responseMimeType: request.jsonMode ? "application/json" : undefined,
             },
         });
 
@@ -33,6 +39,11 @@ export class GeminiProvider implements AIProvider {
             text: response.text ?? "",
             provider: "GEMINI",
             model: AIConfig.gemini.model!,
+            usage: {
+                promptTokens: response.usageMetadata?.promptTokenCount ?? 0,
+                completionTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+                totalTokens: response.usageMetadata?.totalTokenCount ?? 0,
+            },
         };
     }
 }

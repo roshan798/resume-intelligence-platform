@@ -25,13 +25,13 @@ export function QuickActions() {
                 <Button
                     variant="outline"
                     asChild>
-                    <Link href="/ai/draft">Generate Draft</Link>
+                    <Link href="/semantic-search">Semantic Search</Link>
                 </Button>
 
                 <Button
                     variant="outline"
                     asChild>
-                    <Link href="/applications">Applications</Link>
+                    <Link href="/ai/suggestions">AI Suggestions</Link>
                 </Button>
             </CardContent>
         </Card>
