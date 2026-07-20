@@ -197,7 +197,7 @@ export default function ArchitecturePage() {
                 <section id="data-model" className="scroll-mt-24 mx-auto max-w-7xl px-6 py-20">
                     <SectionHeading eyebrow="Data lineage" title="Every result points back to its source" description="Immutable versions and snapshots prevent later edits from silently changing an old match or application." />
                     <div className="mt-12 overflow-x-auto pb-4">
-                        <div className="mx-auto flex min-w-[900px] items-center justify-center gap-3" role="img" aria-label="User owns resumes and job descriptions. Resume versions and job description analyses produce match results, AI suggestions, and applications.">
+                        <div className="mx-auto flex min-w-225 items-center justify-center gap-3" role="img" aria-label="User owns resumes and job descriptions. Resume versions and job description analyses produce match results, AI suggestions, and applications.">
                             <Entity icon={UserRound} title="User" detail="Owner" />
                             <Connector />
                             <div className="space-y-4">

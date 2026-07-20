@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/prisma";
+import { Prisma } from "@prisma/client";
 
 export class JDAnalysisRepository {
     async findByIdAndUser(id: string, userId: string) {

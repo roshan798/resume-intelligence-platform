@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma, SourceFormat } from "@/generated/prisma";
+import { Prisma, SourceFormat } from "@prisma/client";
 
 export class ResumeRepository {
     async findAllByUser(userId: string) {

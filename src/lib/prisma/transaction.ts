@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { Prisma } from "@/generated/prisma";
+import { Prisma } from "@prisma/client";
 
 /**
  * A type-safe wrapper around Prisma's $transaction utility.
