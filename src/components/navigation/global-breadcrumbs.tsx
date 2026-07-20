@@ -9,7 +9,7 @@ interface BreadcrumbItem {
     href?: string;
 }
 
-const publicPaths = new Set(["/", "/login", "/register"]);
+const publicPaths = new Set(["/", "/login", "/register", "/architecture"]);
 
 export function GlobalBreadcrumbs() {
     const pathname = usePathname();

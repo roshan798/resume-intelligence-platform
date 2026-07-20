@@ -8,6 +8,7 @@ import {
     CheckCircle2,
     BarChart3,
     Sparkles,
+    Network,
 } from "lucide-react";
 
 export default function Home() {
@@ -32,6 +33,12 @@ export default function Home() {
                     </Link>
 
                     <nav className="flex items-center gap-3">
+                        <Link
+                            href="/architecture"
+                            className="hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground sm:inline-flex">
+                            <Network className="h-4 w-4" />
+                            Architecture
+                        </Link>
                         <Link
                             href="/login"
                             className="rounded-lg border px-4 py-2 text-sm font-medium transition hover:bg-muted">
@@ -85,6 +92,13 @@ export default function Home() {
                                     href="/login"
                                     className="inline-flex items-center justify-center rounded-lg border px-6 py-3 font-medium transition hover:bg-muted">
                                     Sign In
+                                </Link>
+
+                                <Link
+                                    href="/architecture"
+                                    className="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground">
+                                    See how it works
+                                    <Network className="h-4 w-4" />
                                 </Link>
                             </div>
 
@@ -274,7 +288,12 @@ export default function Home() {
             <footer className="border-t">
                 <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
                     <p>Resume Intelligence Platform</p>
-                    <p>Built with Next.js, Prisma, Supabase and AI</p>
+                    <div className="flex flex-wrap items-center gap-4">
+                        <Link href="/architecture" className="transition hover:text-foreground">
+                            Architecture & workflow
+                        </Link>
+                        <p>Built with Next.js, Prisma, Supabase and AI</p>
+                    </div>
                 </div>
             </footer>
         </div>
