@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-    title: "Architecture & Workflow | Resume Intelligence Platform",
+    title: "Architecture & Workflow",
     description:
         "A visual guide to the Resume Intelligence Platform architecture, data flow, matching, AI assistance, and application tracking.",
 };
