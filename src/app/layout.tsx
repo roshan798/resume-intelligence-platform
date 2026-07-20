@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Suspense } from "react";
 import { GlobalBreadcrumbs } from "@/components/navigation/global-breadcrumbs";
+import { NavigationProgress } from "@/components/navigation/navigation-progress";
 
 const playfairDisplayHeading = Playfair_Display({subsets:['latin'],variable:'--font-heading'});
 
@@ -35,6 +36,9 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", notoSans.variable, playfairDisplayHeading.variable)}
     >
       <body className="min-h-full flex flex-col">
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <Suspense fallback={null}>
           <GlobalBreadcrumbs />
         </Suspense>
