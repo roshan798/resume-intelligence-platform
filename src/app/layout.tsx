@@ -5,6 +5,17 @@ import { cn } from "@/lib/utils";
 import { Suspense } from "react";
 import { GlobalBreadcrumbs } from "@/components/navigation/global-breadcrumbs";
 import { NavigationProgress } from "@/components/navigation/navigation-progress";
+import { ThemeSwitcher } from "@/components/theme/theme-switcher";
+
+const themeInitializationScript = `
+try {
+  const savedTheme = localStorage.getItem("theme");
+  const theme = ["light", "dark", "system"].includes(savedTheme) ? savedTheme : "system";
+  const dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.toggle("dark", dark);
+  document.documentElement.dataset.theme = theme;
+} catch {}
+`;
 
 const playfairDisplayHeading = Playfair_Display({subsets:['latin'],variable:'--font-heading'});
 
@@ -33,8 +44,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", notoSans.variable, playfairDisplayHeading.variable)}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitializationScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <Suspense fallback={null}>
           <NavigationProgress />
@@ -43,6 +58,7 @@ export default function RootLayout({
           <GlobalBreadcrumbs />
         </Suspense>
         {children}
+        <ThemeSwitcher />
       </body>
     </html>
   );
