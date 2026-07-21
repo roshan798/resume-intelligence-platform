@@ -1,3 +1,12 @@
+if (typeof globalThis.DOMMatrix === "undefined") {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { DOMMatrix, ImageData, Path2D } = require("@napi-rs/canvas");
+        globalThis.DOMMatrix = DOMMatrix;
+        globalThis.ImageData = ImageData;
+        globalThis.Path2D = Path2D;
+    } catch {}
+}
 import { PDFParse } from "pdf-parse";
 
 import { ResumeParser } from "./parser.interface";
