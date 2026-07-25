@@ -58,6 +58,12 @@ export default async function AIChatPage() {
                 }))}
                 initialConversationId={active?.id ?? null}
                 initialSummary={active?.summary ?? null}
+                initialContext={{
+                    totalMessages: active?._count.messages ?? 0,
+                    activeMessages: Math.min(active?._count.messages ?? 0, 20),
+                    summarizedMessages: active?.summarizedMessageCount ?? 0,
+                    limit: 20,
+                }}
                 initialMessages={(active?.messages ?? []).map((message) => ({
                     ...message,
                     createdAt: message.createdAt.toISOString(),
