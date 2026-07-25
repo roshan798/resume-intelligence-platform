@@ -12,13 +12,19 @@ interface DestroyableParser {
 }
 
 export class PdfResumeParser implements ResumeParser {
+    constructor(private readonly allowRemote = true) {}
+
     async parse(fileBuffer: Buffer): Promise<ParsedResume> {
         logger.info(
             { bufferSize: fileBuffer.byteLength },
             "Starting PDF parsing execution",
         );
 
-        // 1. Polyfill DOM Matrix & Canvas for Node environment
+        if (this.allowRemote && process.env.DOCUMENT_PROCESSOR_URL) {
+            return this.parseRemotely(fileBuffer);
+        }
+
+        // PDF.js uses these browser primitives even for text-only extraction.
         if (typeof globalThis.DOMMatrix === "undefined") {
             try {
                 const {
@@ -47,15 +53,6 @@ export class PdfResumeParser implements ResumeParser {
         let parser: DestroyableParser | null = null;
 
         try {
-            // 2. Set up PDF.js worker before loading pdf-parse
-            const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-
-            // Point workerSrc to cdnjs fallback so Vercel doesn't crash on missing local worker.mjs
-            if (pdfjs?.GlobalWorkerOptions) {
-                pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
-            }
-
-            // 3. Load PDFParse
             const { PDFParse } = await import("pdf-parse");
 
             parser = new PDFParse({
@@ -99,5 +96,52 @@ export class PdfResumeParser implements ResumeParser {
                 } catch {}
             }
         }
+    }
+
+    private async parseRemotely(fileBuffer: Buffer): Promise<ParsedResume> {
+        const baseUrl = process.env.DOCUMENT_PROCESSOR_URL?.replace(/\/$/u, "");
+        const token = process.env.DOCUMENT_PROCESSOR_TOKEN;
+        if (!baseUrl || !token) {
+            throw new Error(
+                "DOCUMENT_PROCESSOR_TOKEN is required when DOCUMENT_PROCESSOR_URL is configured.",
+            );
+        }
+
+        const response = await fetch(`${baseUrl}/api/internal/documents/parse`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/pdf",
+            },
+            body: new Uint8Array(fileBuffer),
+            signal: AbortSignal.timeout(45_000),
+        });
+        const result = (await response.json()) as {
+            rawText?: string;
+            message?: string;
+        };
+        if (!response.ok || typeof result.rawText !== "string") {
+            throw new Error(
+                result.message || `Document processor returned HTTP ${response.status}.`,
+            );
+        }
+
+        logger.info(
+            { textLength: result.rawText.length },
+            "PDF parsed by remote document processor",
+        );
+        return {
+            rawText: result.rawText,
+            sections: {
+                summary: "",
+                skills: "",
+                experience: [],
+                projects: [],
+                education: [],
+                certifications: [],
+                others: [],
+            },
+            sourceFormat: "PDF",
+        };
     }
 }

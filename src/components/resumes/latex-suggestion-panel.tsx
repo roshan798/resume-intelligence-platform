@@ -22,6 +22,10 @@ export function LatexSuggestionPanel({ versionId, suggestions }: { versionId: st
     const router = useRouter();
     const [busyId, setBusyId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [appliedChanges, setAppliedChanges] = useState<Array<{
+        before: string;
+        after: string;
+    }>>([]);
 
     async function applySuggestion(suggestionId: string) {
         if (!window.confirm("Apply all recommendations in this accepted suggestion to the LaTeX draft? Review the resulting source before finalizing.")) return;
@@ -29,8 +33,17 @@ export function LatexSuggestionPanel({ versionId, suggestions }: { versionId: st
         setError(null);
         try {
             const response = await fetch(`/api/resumes/versions/${versionId}/suggestions/${suggestionId}/apply`, { method: "POST" });
-            const body = await response.json() as { message?: string };
+            const body = await response.json() as {
+                message?: string;
+                changes?: Array<{ before: string; after: string }>;
+            };
             if (!response.ok) throw new Error(body.message || "Unable to apply suggestion.");
+            setAppliedChanges(body.changes ?? []);
+            window.dispatchEvent(
+                new CustomEvent("latex-preview-updated", {
+                    detail: { versionId },
+                }),
+            );
             router.refresh();
         } catch (error) {
             setError(error instanceof Error ? error.message : "Unable to apply suggestion.");
@@ -69,7 +82,46 @@ export function LatexSuggestionPanel({ versionId, suggestions }: { versionId: st
                     </div>
                 ))}
                 {error ? <p className="text-sm text-destructive">{error}</p> : null}
+                {appliedChanges.length > 0 ? (
+                    <div className="space-y-4 rounded border border-emerald-500/40 bg-emerald-500/5 p-4">
+                        <div>
+                            <p className="font-medium">Applied successfully</p>
+                            <p className="text-sm text-muted-foreground">
+                                The source, parsed content, and PDF preview were refreshed.
+                                Review the exact changes below.
+                            </p>
+                        </div>
+                        {appliedChanges.map((change, index) => (
+                            <div key={index} className="grid gap-3 lg:grid-cols-2">
+                                <DiffBlock label="Before" value={change.before} tone="removed" />
+                                <DiffBlock label="After" value={change.after} tone="added" />
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
             </CardContent>
         </Card>
+    );
+}
+
+function DiffBlock({
+    label,
+    value,
+    tone,
+}: {
+    label: string;
+    value: string;
+    tone: "removed" | "added";
+}) {
+    return (
+        <div className={tone === "added"
+            ? "rounded border border-emerald-500/30 bg-emerald-500/10 p-3"
+            : "rounded border border-rose-500/30 bg-rose-500/10 p-3"}
+        >
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide">
+                {tone === "added" ? "+ " : "− "}{label}
+            </p>
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs">{value}</pre>
+        </div>
     );
 }

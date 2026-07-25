@@ -1,0 +1,5 @@
+1-> PDF upload not working in server less vercel deployement // give solution what to do
+2-> similaraly latext compilation not happening / pdf preview not working
+3-> it looks very long process like i copy JD and ohter deatils then save then run match against all resume manually by clicking the button and then choose which resume to select also to edit (which obiviously how working or not idk (in latex)). which looks very length process make it smooth so i/user have to very minimal.
+4-> when applying ai edits after accespting in latex too i dont see any difference either i have missed or really there is no difference. but i saw diff in parsed section.
+5-> one more thing like in existing skilss or section whatever has been parsed wherr the diff is being shown can we visully show the difference like user automaticallyknow these are mossing and these are present

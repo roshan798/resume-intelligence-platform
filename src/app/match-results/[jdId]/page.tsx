@@ -26,7 +26,8 @@ export default async function MatchResultsPage({ params }: PageProps) {
                 <div>
                     <h1 className="text-3xl font-bold">Ranked resume matches</h1>
                     <p className="mt-2 text-muted-foreground">
-                        Active resume versions ranked by deterministic JD coverage.
+                        We analyzed every active version. The first result is the
+                        recommended starting point.
                     </p>
                 </div>
                 <Button asChild variant="outline">
@@ -43,18 +44,27 @@ export default async function MatchResultsPage({ params }: PageProps) {
                 </Card>
             ) : (
                 <div className="space-y-4">
+                    <div className="flex flex-wrap gap-3 text-xs">
+                        <Legend className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" label="Present" />
+                        <Legend className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200" label="Weak placement" />
+                        <Legend className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200" label="Missing" />
+                    </div>
                     {results.map((result, index) => {
                         const scores = readSectionScores(result.sectionScores);
                         const matched = readStrings(result.matchedKeywords);
                         const missing = readStrings(result.missingKeywords);
+                        const weak = new Set(readStrings(result.weakKeywords));
                         return (
-                            <Card key={result.id}>
+                            <Card key={result.id} className={index === 0 ? "border-primary shadow-md" : ""}>
                                 <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="space-y-1">
                                         <p className="text-sm text-muted-foreground">
                                             Rank #{index + 1} · Version {result.resumeVersion.versionNumber}
                                         </p>
-                                        <CardTitle>{result.resumeVersion.resume.title}</CardTitle>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <CardTitle>{result.resumeVersion.resume.title}</CardTitle>
+                                            {index === 0 ? <Badge>Recommended</Badge> : null}
+                                        </div>
                                     </div>
                                     <ScoreBadge score={Number(result.overallScore)} />
                                 </CardHeader>
@@ -66,10 +76,17 @@ export default async function MatchResultsPage({ params }: PageProps) {
                                     </div>
                                     <div className="flex flex-wrap gap-2">
                                         {matched.slice(0, 12).map((keyword) => (
-                                            <Badge key={keyword} variant="secondary">{keyword}</Badge>
+                                            <Badge
+                                                key={keyword}
+                                                className={weak.has(keyword)
+                                                    ? "bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-200"
+                                                    : "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-200"}
+                                            >
+                                                {weak.has(keyword) ? "Weak: " : "Present: "}{keyword}
+                                            </Badge>
                                         ))}
                                         {missing.slice(0, 8).map((keyword) => (
-                                            <Badge key={keyword} variant="outline">Missing: {keyword}</Badge>
+                                            <Badge key={keyword} className="bg-rose-100 text-rose-800 hover:bg-rose-100 dark:bg-rose-950 dark:text-rose-200">Missing: {keyword}</Badge>
                                         ))}
                                     </div>
                                     <Button asChild variant="outline">
@@ -87,6 +104,10 @@ export default async function MatchResultsPage({ params }: PageProps) {
 
 function ScoreBadge({ score }: { score: number }) {
     return <Badge className="px-4 py-2 text-base">{score.toFixed(1)}% overall</Badge>;
+}
+
+function Legend({ className, label }: { className: string; label: string }) {
+    return <span className={`rounded-full px-3 py-1 font-medium ${className}`}>{label}</span>;
 }
 
 function Metric({ label, value, suffix = "%" }: { label: string; value: number; suffix?: string }) {

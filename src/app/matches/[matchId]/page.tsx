@@ -57,14 +57,14 @@ export default async function MatchPage({ params }: PageProps) {
 
             <div className="grid gap-5 lg:grid-cols-2">
                 <KeywordCard
-                    title="Matching skills"
-                    description="Skills found in this resume version. A weak badge means it appears only in a lower-weight section."
+                    title="Present in resume"
+                    description="Green skills are clearly present. Amber skills exist but are placed in a lower-signal section."
                     keywords={matched}
                     labels={labels}
                     weak={weak}
                 />
                 <KeywordCard
-                    title="Missing skills"
+                    title="Missing from resume"
                     description="JD skills not detected in this resume version. Required skills should be addressed first."
                     keywords={missing}
                     labels={labels}
@@ -140,8 +140,19 @@ function KeywordCard({ title, description, keywords, labels, weak }: {
                 {keywords.length === 0 ? <p className="text-sm text-muted-foreground">None</p> : null}
                 {keywords.map((keyword) => {
                     const metadata = labels.get(keyword);
+                    const isWeak = weak?.has(keyword) ?? false;
+                    const isMissing = title.startsWith("Missing");
                     return (
-                        <Badge key={keyword} variant={weak?.has(keyword) ? "outline" : "secondary"}>
+                        <Badge
+                            key={keyword}
+                            className={
+                                isMissing
+                                    ? "bg-rose-100 text-rose-800 hover:bg-rose-100 dark:bg-rose-950 dark:text-rose-200"
+                                    : isWeak
+                                      ? "bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-200"
+                                      : "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-200"
+                            }
+                        >
                             {metadata?.label || keyword}
                             {metadata?.requirement ? ` · ${formatRequirement(metadata.requirement)}` : ""}
                             {weak?.has(keyword) ? " · Weak placement" : ""}

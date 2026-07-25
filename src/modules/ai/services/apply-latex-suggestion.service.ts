@@ -5,6 +5,7 @@ import { ResumeSimilarityService } from "@/lib/matching/similarity/resume-simila
 import { ResumeParserService } from "@/lib/parsing/pipeline/resume-parser.service";
 import { logger } from "@/lib/logger";
 import { ResumeVersionRepository } from "@/modules/resumes/repositories/resume-version.repository";
+import { CompileLatexPreviewService } from "@/modules/resumes/services/compile-latex-preview.service";
 
 import { AISuggestionRepository } from "../repositories/ai-suggestion.repository";
 import { AIGatewayService } from "./ai-gateway.service";
@@ -24,6 +25,7 @@ export class ApplyLatexSuggestionService {
     private readonly gateway = new AIGatewayService();
     private readonly parser = new ResumeParserService();
     private readonly similarity = new ResumeSimilarityService();
+    private readonly latexCompiler = new CompileLatexPreviewService();
 
     async execute(suggestionId: string, draftVersionId: string, userId: string) {
         const [suggestion, draft] = await Promise.all([
@@ -81,6 +83,11 @@ Do not JSON-encode or escape LaTeX backslashes. TARGET must be an exact, unique 
             { suggestionId, draftVersionId },
         );
         const parsed = await this.parser.parse("LATEX", Buffer.from(updatedSource, "utf8"));
+        await this.latexCompiler.compileInput({
+            latexSource: updatedSource,
+            latexStyleSource: draft.latexStyleSource,
+            latexStyleFilename: draft.latexStyleFilename,
+        });
 
         const applied = await this.suggestions.applyToLatexDraft({
             suggestionId,
@@ -102,7 +109,13 @@ Do not JSON-encode or escape LaTeX backslashes. TARGET must be an exact, unique 
             "AI suggestions applied to LaTeX draft",
         );
 
-        return applied;
+        return {
+            version: applied,
+            changes: generated.patches.map((patch) => ({
+                before: patch.targetText,
+                after: patch.replacementLatex,
+            })),
+        };
     }
 
     private applyPatches(

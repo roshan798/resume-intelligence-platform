@@ -4,7 +4,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["pdf-parse", "@napi-rs/canvas", "pdfjs-dist"],
   outputFileTracingIncludes: {
-    "/api/**/*": ["./node_modules/pdfjs-dist/**/*"],
+    "/api/**/*": [
+      "./node_modules/pdfjs-dist/**/*",
+      "./node_modules/@napi-rs/canvas/**/*",
+    ],
   }
 };
 

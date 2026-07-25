@@ -5,6 +5,10 @@ import { GetResumesService } from "@/modules/resumes/services/get-resumes.servic
 import { UploadResumeService } from "@/modules/resumes/services/upload-resume.service";
 import { uploadResumeSchema } from "@/modules/resumes/validations/upload-resume.schema";
 import { AppError } from "@/shared/errors/app.error";
+import { logger } from "@/lib/logger";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function GET() {
     const session = await auth();
@@ -62,6 +66,10 @@ export async function POST(request: Request) {
 
         return NextResponse.json(result, { status: 201 });
     } catch (error) {
+        logger.error(
+            { err: error, userId: session.user.id },
+            "Resume upload request failed",
+        );
         if (error instanceof AppError) {
             return NextResponse.json(
                 { code: error.code, message: error.message },

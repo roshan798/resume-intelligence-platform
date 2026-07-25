@@ -34,14 +34,20 @@ export function JobDescriptionCreateForm() {
             });
             const body = (await response.json()) as {
                 jobDescription?: { id: string };
+                snapshot?: { id: string };
+                matching?: { count: number; bestMatchId: string | null };
                 message?: string;
             };
 
-            if (!response.ok || !body.jobDescription?.id) {
+            if (!response.ok || !body.jobDescription?.id || !body.snapshot?.id) {
                 throw new Error(body.message || "Unable to save job description.");
             }
 
-            router.push(`/job-descriptions/${body.jobDescription.id}`);
+            router.push(
+                body.matching && body.matching.count > 0
+                    ? `/match-results/${body.snapshot.id}`
+                    : `/job-descriptions/${body.jobDescription.id}`,
+            );
             router.refresh();
         } catch (caughtError) {
             setError(
@@ -83,8 +89,14 @@ export function JobDescriptionCreateForm() {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save job description"}
+                {isSaving
+                    ? "Analyzing and matching resumes..."
+                    : "Analyze JD and find best resume"}
             </Button>
+            <p className="text-xs text-muted-foreground">
+                One click saves the JD, extracts keywords, scores every active
+                resume version, and opens the ranked recommendation.
+            </p>
         </form>
     );
 }

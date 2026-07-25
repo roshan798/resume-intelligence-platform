@@ -20,8 +20,30 @@ export class CompileLatexPreviewService {
         if (!version.latexSource?.trim()) {
             throw new LatexPreviewError("LaTeX source is unavailable for this version.");
         }
-        this.assertSafe(version.latexSource);
-        if (version.latexStyleSource) this.assertSafe(version.latexStyleSource);
+        const input = {
+            latexSource: version.latexSource,
+            latexStyleSource: version.latexStyleSource,
+            latexStyleFilename: version.latexStyleFilename,
+        };
+        return this.compileInput(input);
+    }
+
+    async compileInput(input: {
+        latexSource: string;
+        latexStyleSource: string | null;
+        latexStyleFilename: string | null;
+    }): Promise<Buffer> {
+        if (process.env.LATEX_COMPILER_URL) return this.compileRemotely(input);
+        return this.compileSource(input);
+    }
+
+    async compileSource(input: {
+        latexSource: string;
+        latexStyleSource: string | null;
+        latexStyleFilename: string | null;
+    }): Promise<Buffer> {
+        this.assertSafe(input.latexSource);
+        if (input.latexStyleSource) this.assertSafe(input.latexStyleSource);
 
         const workingDirectory = await mkdtemp(
             join(/*turbopackIgnore: true*/ tmpdir(), "resume-latex-"),
@@ -29,17 +51,17 @@ export class CompileLatexPreviewService {
         try {
             await writeFile(
                 join(/*turbopackIgnore: true*/ workingDirectory, "resume.tex"),
-                version.latexSource,
+                input.latexSource,
                 "utf8",
             );
-            if (version.latexStyleSource && version.latexStyleFilename) {
-                const safeFilename = basename(version.latexStyleFilename);
+            if (input.latexStyleSource && input.latexStyleFilename) {
+                const safeFilename = basename(input.latexStyleFilename);
                 if (!/^[a-zA-Z0-9._-]+\.(?:cls|sty)$/u.test(safeFilename)) {
                     throw new LatexPreviewError("The LaTeX style filename is invalid.");
                 }
                 await writeFile(
                     join(/*turbopackIgnore: true*/ workingDirectory, safeFilename),
-                    version.latexStyleSource,
+                    input.latexStyleSource,
                     "utf8",
                 );
             }
@@ -51,6 +73,40 @@ export class CompileLatexPreviewService {
         } finally {
             await rm(workingDirectory, { recursive: true, force: true });
         }
+    }
+
+    private async compileRemotely(input: {
+        latexSource: string;
+        latexStyleSource: string | null;
+        latexStyleFilename: string | null;
+    }): Promise<Buffer> {
+        this.assertSafe(input.latexSource);
+        if (input.latexStyleSource) this.assertSafe(input.latexStyleSource);
+        const baseUrl = process.env.LATEX_COMPILER_URL?.replace(/\/$/u, "");
+        const token = process.env.LATEX_COMPILER_TOKEN;
+        if (!baseUrl || !token) {
+            throw new LatexPreviewError(
+                "LATEX_COMPILER_TOKEN is required when LATEX_COMPILER_URL is configured.",
+            );
+        }
+        const response = await fetch(`${baseUrl}/api/internal/latex/compile`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(input),
+            signal: AbortSignal.timeout(45_000),
+        });
+        if (!response.ok) {
+            const body = (await response.json().catch(() => null)) as {
+                message?: string;
+            } | null;
+            throw new LatexPreviewError(
+                body?.message || `LaTeX compiler returned HTTP ${response.status}.`,
+            );
+        }
+        return Buffer.from(await response.arrayBuffer());
     }
 
     private assertSafe(source: string) {

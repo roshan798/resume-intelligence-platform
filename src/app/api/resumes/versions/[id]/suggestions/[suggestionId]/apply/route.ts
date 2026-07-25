@@ -12,9 +12,13 @@ export async function POST(
     if (!session?.user?.id) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     const { id, suggestionId } = await context.params;
     try {
-        const version = await new ApplyLatexSuggestionService().execute(suggestionId, id, session.user.id);
-        if (!version) return NextResponse.json({ message: "Suggestion or draft not found." }, { status: 404 });
-        return NextResponse.json({ id: version.id, status: "APPLIED" });
+        const result = await new ApplyLatexSuggestionService().execute(suggestionId, id, session.user.id);
+        if (!result) return NextResponse.json({ message: "Suggestion or draft not found." }, { status: 404 });
+        return NextResponse.json({
+            id: result.version.id,
+            status: "APPLIED",
+            changes: result.changes,
+        });
     } catch (error) {
         logger.error(
             {

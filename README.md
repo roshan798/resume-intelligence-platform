@@ -95,3 +95,31 @@ npm run workers
 - Back up the PostgreSQL volume and Supabase Storage independently.
 - The built-in request limiter is per web process. Multi-replica deployments should move rate-limit counters to Redis or an edge gateway.
 - Scale workers independently from the web service when AI queue volume grows.
+
+### Vercel web + Docker document processor
+
+Vercel should host the web application and API orchestration only. PDF parsing
+and LaTeX compilation depend on native binaries and should run in the production
+Docker image.
+
+1. Deploy `Dockerfile.prod` to a container host with a public HTTPS URL.
+2. Set strong, identical `DOCUMENT_PROCESSOR_TOKEN` and
+   `LATEX_COMPILER_TOKEN` values on the container and Vercel.
+3. On Vercel, set:
+
+```text
+DOCUMENT_PROCESSOR_URL=https://your-processor.example.com
+DOCUMENT_PROCESSOR_TOKEN=...
+LATEX_COMPILER_URL=https://your-processor.example.com
+LATEX_COMPILER_TOKEN=...
+```
+
+The Vercel application forwards PDF extraction to
+`/api/internal/documents/parse` and LaTeX compilation to
+`/api/internal/latex/compile`. Both endpoints reject requests without their
+shared bearer token. Docker and local development continue to process documents
+locally when the URL variables are absent.
+
+Use `npx prisma generate && npm run build` as the Vercel build command. Keep
+uploaded resumes small enough for the hosting platform's request-body limit;
+the application limit is controlled by `MAX_UPLOAD_SIZE_MB`.
