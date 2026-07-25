@@ -21,6 +21,9 @@ interface ChatMessage {
     content: string;
     provider?: string | null;
     modelUsed?: string | null;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
     createdAt: string;
 }
 
@@ -57,6 +60,10 @@ export function AIChat({
     const [error, setError] = useState<string | null>(null);
     const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
     const endRef = useRef<HTMLDivElement>(null);
+    const conversationTokens = messages.reduce(
+        (total, item) => total + (item.totalTokens ?? 0),
+        0,
+    );
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -394,6 +401,12 @@ export function AIChat({
                                         </span>
                                     </>
                                 ) : null}
+                                {conversationTokens > 0 ? (
+                                    <>
+                                        <span aria-hidden="true">·</span>
+                                        <span>{conversationTokens.toLocaleString()} conversation tokens</span>
+                                    </>
+                                ) : null}
                             </div>
                         ) : null}
                         {summary ? (
@@ -457,6 +470,15 @@ export function AIChat({
                                             {item.provider || item.modelUsed ? (
                                                 <span className="text-[11px] text-muted-foreground">
                                                     {[item.provider, item.modelUsed].filter(Boolean).join(" · ")}
+                                                </span>
+                                            ) : null}
+                                            {(item.totalTokens ?? 0) > 0 ? (
+                                                <span className="text-[11px] text-muted-foreground">
+                                                    {item.totalTokens!.toLocaleString()} tokens
+                                                    {typeof item.promptTokens === "number" &&
+                                                    typeof item.completionTokens === "number"
+                                                        ? ` (${item.promptTokens.toLocaleString()} in · ${item.completionTokens.toLocaleString()} out)`
+                                                        : ""}
                                                 </span>
                                             ) : null}
                                         </div>
