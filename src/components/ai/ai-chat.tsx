@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Bot, MessageSquarePlus, Search, Send, Trash2, UserRound } from "lucide-react";
+import { Bot, MessageSquarePlus, Pencil, Search, Send, Trash2, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -222,6 +222,27 @@ export function AIChat({
         }
     }
 
+    async function renameConversation(conversation: Conversation) {
+        const title = window.prompt("Rename conversation", conversation.title)?.trim();
+        if (!title || title === conversation.title) return;
+        const response = await fetch(`/api/ai/chat/${conversation.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title }),
+        });
+        const body = await response.json().catch(() => null) as {
+            message?: string;
+            title?: string;
+        } | null;
+        if (!response.ok || !body?.title) {
+            setError(body?.message ?? "Unable to rename conversation.");
+            return;
+        }
+        setConversations((current) => current.map((item) =>
+            item.id === conversation.id ? { ...item, title: body.title! } : item
+        ));
+    }
+
     return (
         <div className="grid min-h-[650px] border bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
             <aside className="flex min-h-0 flex-col border-b lg:border-r lg:border-b-0">
@@ -270,6 +291,14 @@ export function AIChat({
                                         {conversation.messageCount} messages
                                     </span>
                                 </button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="opacity-60 hover:opacity-100"
+                                    aria-label={`Rename ${conversation.title}`}
+                                    onClick={() => renameConversation(conversation)}>
+                                    <Pencil aria-hidden="true" />
+                                </Button>
                                 <Button
                                     variant="ghost"
                                     size="icon-xs"
