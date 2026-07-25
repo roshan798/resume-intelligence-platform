@@ -120,6 +120,28 @@ The Vercel application forwards PDF extraction to
 shared bearer token. Docker and local development continue to process documents
 locally when the URL variables are absent.
 
+#### Run the processor directly on EC2
+
+Docker is optional. On the EC2 machine that already runs `worker.ts`, install
+the Node dependencies and TeX runtime, then start a second process:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y texlive-latex-base texlive-latex-recommended \
+  texlive-latex-extra texlive-fonts-recommended
+npm ci
+npm run processor
+```
+
+Set `PROCESSOR_HOST=127.0.0.1`, `PROCESSOR_PORT=3001`,
+`DOCUMENT_PROCESSOR_TOKEN`, and `LATEX_COMPILER_TOKEN` in the EC2 process
+environment. Keep `npm run workers` running as its own process; it handles
+BullMQ and does not serve HTTP.
+
+Put Nginx or Caddy in front of `127.0.0.1:3001`, enable HTTPS, and point both
+Vercel URL variables at that public HTTPS origin. Only port 443 needs to be
+open in the EC2 security group.
+
 Use `npx prisma generate && npm run build` as the Vercel build command. Keep
 uploaded resumes small enough for the hosting platform's request-body limit;
 the application limit is controlled by `MAX_UPLOAD_SIZE_MB`.
