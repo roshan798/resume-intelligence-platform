@@ -88,13 +88,45 @@ export function AIChat({
     const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
     const endRef = useRef<HTMLDivElement>(null);
     const formRef = useRef<HTMLFormElement>(null);
+    const autoFollowRef = useRef(true);
+    const scrollFrameRef = useRef<number | null>(null);
     const conversationTokens = messages.reduce(
         (total, item) => total + (item.totalTokens ?? 0),
         0,
     );
 
     useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: "smooth" });
+        const viewport = endRef.current?.closest<HTMLElement>(
+            '[data-slot="scroll-area-viewport"]',
+        );
+        if (!viewport) return;
+        const trackPosition = () => {
+            const distanceFromBottom =
+                viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+            autoFollowRef.current = distanceFromBottom < 96;
+        };
+        viewport.addEventListener("scroll", trackPosition, { passive: true });
+        return () => viewport.removeEventListener("scroll", trackPosition);
+    }, []);
+
+    useEffect(() => {
+        if (!autoFollowRef.current) return;
+        if (scrollFrameRef.current !== null) {
+            window.cancelAnimationFrame(scrollFrameRef.current);
+        }
+        scrollFrameRef.current = window.requestAnimationFrame(() => {
+            endRef.current?.scrollIntoView({
+                block: "end",
+                behavior: pending ? "auto" : "smooth",
+            });
+            scrollFrameRef.current = null;
+        });
+        return () => {
+            if (scrollFrameRef.current !== null) {
+                window.cancelAnimationFrame(scrollFrameRef.current);
+                scrollFrameRef.current = null;
+            }
+        };
     }, [messages, pending]);
 
     useEffect(() => {
@@ -139,6 +171,7 @@ export function AIChat({
     async function selectConversation(id: string) {
         if (id === conversationId || loadingConversation) return;
         setLoadingConversation(true);
+        autoFollowRef.current = true;
         setError(null);
         try {
             const response = await fetch(`/api/ai/chat/${id}`);
@@ -183,6 +216,7 @@ export function AIChat({
         event.preventDefault();
         const content = message.trim();
         if (!content || pending) return;
+        autoFollowRef.current = true;
 
         const optimistic: ChatMessage = {
             id: `pending-${Date.now()}`,
@@ -475,6 +509,7 @@ export function AIChat({
                         className="w-full"
                         variant="outline"
                         onClick={() => {
+                            autoFollowRef.current = true;
                             setConversationId(null);
                             setMessages([]);
                             setSummary(null);
