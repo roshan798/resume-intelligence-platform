@@ -132,6 +132,8 @@ model User {
 model AIChatConversation {
   id        String   @id @default(uuid())
   userId    String
+  resumeVersionId String?
+  jdAnalysisId String?
   title     String
   summary   String?  @db.Text
   summarizedMessageCount Int @default(0)
@@ -140,9 +142,13 @@ model AIChatConversation {
   updatedAt DateTime @updatedAt
 
   user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resumeVersion ResumeVersion? @relation("AIChatResumeContext", fields: [resumeVersionId], references: [id], onDelete: SetNull)
+  jdAnalysis JDAnalysis? @relation("AIChatJDContext", fields: [jdAnalysisId], references: [id], onDelete: SetNull)
   messages AIChatMessage[]
 
   @@index([userId, updatedAt])
+  @@index([resumeVersionId])
+  @@index([jdAnalysisId])
   @@map("ai_chat_conversations")
 }
 
@@ -321,6 +327,8 @@ model ResumeVersion {
 
   versionTags ResumeTag[]
 
+  aiChatConversations AIChatConversation[] @relation("AIChatResumeContext")
+
   @@index([resumeId])
   @@index([parentVersionId])
   @@index([jdSnapshotId])
@@ -380,6 +388,8 @@ model JDAnalysis {
   applications Application[]
 
   aiSuggestions AISuggestion[]
+
+  aiChatConversations AIChatConversation[] @relation("AIChatJDContext")
 
   @@unique([jobDescriptionId, snapshotNumber])
   @@index([userId, createdAt])

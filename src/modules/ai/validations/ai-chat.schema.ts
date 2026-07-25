@@ -11,6 +11,8 @@ export const sendChatMessageSchema = z.object({
     conversationId: z.string().uuid().nullable().optional(),
     message: z.string().trim().min(1).max(4_000),
     responseStyle: chatResponseStyleSchema.optional(),
+    resumeVersionId: z.string().uuid().nullable().optional(),
+    jdAnalysisId: z.string().uuid().nullable().optional(),
 });
 
 export const renameChatConversationSchema = z.object({
@@ -19,4 +21,9 @@ export const renameChatConversationSchema = z.object({
 
 export const updateChatResponseStyleSchema = z.object({
     responseStyle: chatResponseStyleSchema,
+});
+
+export const updateChatContextSchema = z.object({
+    resumeVersionId: z.string().uuid().nullable(),
+    jdAnalysisId: z.string().uuid().nullable(),
 });

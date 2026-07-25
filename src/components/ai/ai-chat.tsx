@@ -14,9 +14,21 @@ interface Conversation {
     updatedAt: string;
     messageCount: number;
     responseStyle: ResponseStyle;
+    resumeVersionId: string | null;
+    jdAnalysisId: string | null;
 }
 
 type ResponseStyle = "CONCISE" | "BALANCED" | "DETAILED" | "COACHING";
+
+interface DocumentContext {
+    resumeVersionId: string | null;
+    jdAnalysisId: string | null;
+}
+
+interface ContextOption {
+    id: string;
+    label: string;
+}
 
 interface ChatMessage {
     id: string;
@@ -42,6 +54,9 @@ export function AIChat({
     initialConversationId,
     initialSummary,
     initialResponseStyle,
+    initialDocumentContext,
+    resumeOptions,
+    jdOptions,
     initialContext,
     initialMessages,
 }: {
@@ -49,6 +64,9 @@ export function AIChat({
     initialConversationId: string | null;
     initialSummary: string | null;
     initialResponseStyle: ResponseStyle;
+    initialDocumentContext: DocumentContext;
+    resumeOptions: ContextOption[];
+    jdOptions: ContextOption[];
     initialContext: ContextUsage;
     initialMessages: ChatMessage[];
 }) {
@@ -57,6 +75,7 @@ export function AIChat({
     const [messages, setMessages] = useState(initialMessages);
     const [summary, setSummary] = useState(initialSummary);
     const [responseStyle, setResponseStyle] = useState<ResponseStyle>(initialResponseStyle);
+    const [documentContext, setDocumentContext] = useState(initialDocumentContext);
     const [contextUsage, setContextUsage] = useState(initialContext);
     const [message, setMessage] = useState("");
     const [search, setSearch] = useState("");
@@ -100,6 +119,8 @@ export function AIChat({
                     updatedAt: item.updatedAt,
                     messageCount: item._count.messages,
                     responseStyle: item.responseStyle,
+                    resumeVersionId: item.resumeVersionId,
+                    jdAnalysisId: item.jdAnalysisId,
                 })));
             } catch (caught) {
                 if (!(caught instanceof DOMException && caught.name === "AbortError")) {
@@ -129,6 +150,8 @@ export function AIChat({
                     summarizedMessageCount: number;
                     _count: { messages: number };
                     responseStyle: ResponseStyle;
+                    resumeVersionId: string | null;
+                    jdAnalysisId: string | null;
                 };
             };
             if (!response.ok || !body.conversation) {
@@ -138,6 +161,10 @@ export function AIChat({
             setMessages(body.conversation.messages);
             setSummary(body.conversation.summary);
             setResponseStyle(body.conversation.responseStyle);
+            setDocumentContext({
+                resumeVersionId: body.conversation.resumeVersionId,
+                jdAnalysisId: body.conversation.jdAnalysisId,
+            });
             setSidebarOpen(false);
             setContextUsage({
                 totalMessages: body.conversation._count.messages,
@@ -191,6 +218,7 @@ export function AIChat({
                     conversationId,
                     message: content,
                     responseStyle,
+                    ...documentContext,
                 }),
             });
             if (!response.ok || !response.body) {
@@ -204,6 +232,8 @@ export function AIChat({
                 id: string;
                 title: string;
                 responseStyle: ResponseStyle;
+                resumeVersionId: string | null;
+                jdAnalysisId: string | null;
             } | null = null;
             let persistedUser: ChatMessage | null = null;
 
@@ -222,6 +252,8 @@ export function AIChat({
                                 title: string;
                                 summary: string | null;
                                 responseStyle: ResponseStyle;
+                                resumeVersionId: string | null;
+                                jdAnalysisId: string | null;
                             };
                             context: ContextUsage;
                             userMessage: ChatMessage;
@@ -236,6 +268,10 @@ export function AIChat({
                         setConversationId(event.conversation.id);
                         setSummary(event.conversation.summary);
                         setResponseStyle(event.conversation.responseStyle);
+                        setDocumentContext({
+                            resumeVersionId: event.conversation.resumeVersionId,
+                            jdAnalysisId: event.conversation.jdAnalysisId,
+                        });
                         setContextUsage(event.context);
                         setMessages((current) => current.map((item) =>
                             item.id === optimistic.id ? event.userMessage : item
@@ -273,6 +309,8 @@ export function AIChat({
                     updatedAt: new Date().toISOString(),
                     messageCount: (existing?.messageCount ?? 0) + 2,
                     responseStyle: completedConversation.responseStyle,
+                    resumeVersionId: completedConversation.resumeVersionId,
+                    jdAnalysisId: completedConversation.jdAnalysisId,
                 };
                 return [updated, ...current.filter((item) => item.id !== completedConversation.id)];
             });
@@ -290,6 +328,7 @@ export function AIChat({
                 setConversationId(null);
                 setSummary(null);
                 setResponseStyle(responseStyle);
+                setDocumentContext(documentContext);
                 setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
             } else {
                 setSummary(summaryBeforeSend);
@@ -328,6 +367,28 @@ export function AIChat({
         ));
     }
 
+    async function changeDocumentContext(next: DocumentContext) {
+        const previous = documentContext;
+        setDocumentContext(next);
+        if (!conversationId) return;
+        const response = await fetch(`/api/ai/chat/${conversationId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(next),
+        });
+        const body = await response.json().catch(() => null) as { message?: string } | null;
+        if (!response.ok) {
+            setDocumentContext(previous);
+            setError(body?.message ?? "Unable to update attached context.");
+            return;
+        }
+        setConversations((current) => current.map((item) =>
+            item.id === conversationId
+                ? { ...item, ...next }
+                : item
+        ));
+    }
+
     async function removeConversation(id: string) {
         if (!window.confirm("Delete this conversation and its memory?")) return;
         const response = await fetch(`/api/ai/chat/${id}`, { method: "DELETE" });
@@ -343,6 +404,7 @@ export function AIChat({
             setMessages([]);
             setSummary(null);
             setResponseStyle("BALANCED");
+            setDocumentContext({ resumeVersionId: null, jdAnalysisId: null });
             setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
         }
     }
@@ -417,6 +479,7 @@ export function AIChat({
                             setMessages([]);
                             setSummary(null);
                             setResponseStyle("BALANCED");
+                            setDocumentContext({ resumeVersionId: null, jdAnalysisId: null });
                             setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
                             setError(null);
                             setSidebarOpen(false);
@@ -626,6 +689,40 @@ export function AIChat({
                 </ScrollArea>
 
                 <form ref={formRef} onSubmit={send} className="border-t p-4">
+                    <div className="mx-auto mb-3 grid max-w-3xl gap-2 sm:grid-cols-2">
+                        <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Resume context
+                            <select
+                                value={documentContext.resumeVersionId ?? ""}
+                                disabled={pending}
+                                onChange={(event) => changeDocumentContext({
+                                    ...documentContext,
+                                    resumeVersionId: event.target.value || null,
+                                })}
+                                className="h-9 min-w-0 border bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground">
+                                <option value="">No resume attached</option>
+                                {resumeOptions.map((option) => (
+                                    <option key={option.id} value={option.id}>{option.label}</option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Job description context
+                            <select
+                                value={documentContext.jdAnalysisId ?? ""}
+                                disabled={pending}
+                                onChange={(event) => changeDocumentContext({
+                                    ...documentContext,
+                                    jdAnalysisId: event.target.value || null,
+                                })}
+                                className="h-9 min-w-0 border bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground">
+                                <option value="">No job description attached</option>
+                                {jdOptions.map((option) => (
+                                    <option key={option.id} value={option.id}>{option.label}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                     <div className="mx-auto flex max-w-3xl items-end gap-3">
                         <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                             Style
