@@ -13,7 +13,10 @@ interface Conversation {
     title: string;
     updatedAt: string;
     messageCount: number;
+    responseStyle: ResponseStyle;
 }
+
+type ResponseStyle = "CONCISE" | "BALANCED" | "DETAILED" | "COACHING";
 
 interface ChatMessage {
     id: string;
@@ -38,12 +41,14 @@ export function AIChat({
     initialConversations,
     initialConversationId,
     initialSummary,
+    initialResponseStyle,
     initialContext,
     initialMessages,
 }: {
     initialConversations: Conversation[];
     initialConversationId: string | null;
     initialSummary: string | null;
+    initialResponseStyle: ResponseStyle;
     initialContext: ContextUsage;
     initialMessages: ChatMessage[];
 }) {
@@ -51,6 +56,7 @@ export function AIChat({
     const [conversationId, setConversationId] = useState(initialConversationId);
     const [messages, setMessages] = useState(initialMessages);
     const [summary, setSummary] = useState(initialSummary);
+    const [responseStyle, setResponseStyle] = useState<ResponseStyle>(initialResponseStyle);
     const [contextUsage, setContextUsage] = useState(initialContext);
     const [message, setMessage] = useState("");
     const [search, setSearch] = useState("");
@@ -93,6 +99,7 @@ export function AIChat({
                     title: item.title,
                     updatedAt: item.updatedAt,
                     messageCount: item._count.messages,
+                    responseStyle: item.responseStyle,
                 })));
             } catch (caught) {
                 if (!(caught instanceof DOMException && caught.name === "AbortError")) {
@@ -121,6 +128,7 @@ export function AIChat({
                     summary: string | null;
                     summarizedMessageCount: number;
                     _count: { messages: number };
+                    responseStyle: ResponseStyle;
                 };
             };
             if (!response.ok || !body.conversation) {
@@ -129,6 +137,7 @@ export function AIChat({
             setConversationId(id);
             setMessages(body.conversation.messages);
             setSummary(body.conversation.summary);
+            setResponseStyle(body.conversation.responseStyle);
             setSidebarOpen(false);
             setContextUsage({
                 totalMessages: body.conversation._count.messages,
@@ -178,7 +187,11 @@ export function AIChat({
             const response = await fetch("/api/ai/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ conversationId, message: content }),
+                body: JSON.stringify({
+                    conversationId,
+                    message: content,
+                    responseStyle,
+                }),
             });
             if (!response.ok || !response.body) {
                 const body = await response.json().catch(() => null) as { message?: string } | null;
@@ -187,7 +200,11 @@ export function AIChat({
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = "";
-            let streamedConversation: { id: string; title: string } | null = null;
+            let streamedConversation: {
+                id: string;
+                title: string;
+                responseStyle: ResponseStyle;
+            } | null = null;
             let persistedUser: ChatMessage | null = null;
 
             while (true) {
@@ -200,7 +217,12 @@ export function AIChat({
                     const event = JSON.parse(line) as
                         | {
                             type: "start";
-                            conversation: { id: string; title: string; summary: string | null };
+                            conversation: {
+                                id: string;
+                                title: string;
+                                summary: string | null;
+                                responseStyle: ResponseStyle;
+                            };
                             context: ContextUsage;
                             userMessage: ChatMessage;
                         }
@@ -213,6 +235,7 @@ export function AIChat({
                         persistedUserId = event.userMessage.id;
                         setConversationId(event.conversation.id);
                         setSummary(event.conversation.summary);
+                        setResponseStyle(event.conversation.responseStyle);
                         setContextUsage(event.context);
                         setMessages((current) => current.map((item) =>
                             item.id === optimistic.id ? event.userMessage : item
@@ -249,6 +272,7 @@ export function AIChat({
                     title: completedConversation.title,
                     updatedAt: new Date().toISOString(),
                     messageCount: (existing?.messageCount ?? 0) + 2,
+                    responseStyle: completedConversation.responseStyle,
                 };
                 return [updated, ...current.filter((item) => item.id !== completedConversation.id)];
             });
@@ -265,6 +289,7 @@ export function AIChat({
             if (!originalConversationId) {
                 setConversationId(null);
                 setSummary(null);
+                setResponseStyle(responseStyle);
                 setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
             } else {
                 setSummary(summaryBeforeSend);
@@ -283,6 +308,26 @@ export function AIChat({
         window.requestAnimationFrame(() => formRef.current?.requestSubmit());
     }
 
+    async function changeResponseStyle(nextStyle: ResponseStyle) {
+        const previous = responseStyle;
+        setResponseStyle(nextStyle);
+        if (!conversationId) return;
+        const response = await fetch(`/api/ai/chat/${conversationId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ responseStyle: nextStyle }),
+        });
+        const body = await response.json().catch(() => null) as { message?: string } | null;
+        if (!response.ok) {
+            setResponseStyle(previous);
+            setError(body?.message ?? "Unable to update response style.");
+            return;
+        }
+        setConversations((current) => current.map((item) =>
+            item.id === conversationId ? { ...item, responseStyle: nextStyle } : item
+        ));
+    }
+
     async function removeConversation(id: string) {
         if (!window.confirm("Delete this conversation and its memory?")) return;
         const response = await fetch(`/api/ai/chat/${id}`, { method: "DELETE" });
@@ -297,6 +342,7 @@ export function AIChat({
             setConversationId(null);
             setMessages([]);
             setSummary(null);
+            setResponseStyle("BALANCED");
             setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
         }
     }
@@ -337,7 +383,7 @@ export function AIChat({
     const conversationGroups = groupConversations(conversations);
 
     return (
-        <div className="relative grid min-h-[650px] border bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="relative grid min-h-162.5 border bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
             {sidebarOpen ? (
                 <button
                     type="button"
@@ -370,6 +416,7 @@ export function AIChat({
                             setConversationId(null);
                             setMessages([]);
                             setSummary(null);
+                            setResponseStyle("BALANCED");
                             setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
                             setError(null);
                             setSidebarOpen(false);
@@ -392,7 +439,7 @@ export function AIChat({
                         />
                     </label>
                 </div>
-                <ScrollArea className="h-52 lg:h-[590px]">
+                <ScrollArea className="h-52 lg:h-147.5">
                     <div className="space-y-1 p-2">
                         {conversationGroups.map((group) => (
                             <section key={group.label} className="space-y-1">
@@ -463,7 +510,7 @@ export function AIChat({
                         </span>
                     ) : null}
                 </div>
-                <ScrollArea className="h-[520px] flex-1">
+                <ScrollArea className="h-130 flex-1">
                     <div className="mx-auto max-w-3xl space-y-6 p-5 md:p-8">
                         {contextUsage.totalMessages > 0 ? (
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -580,6 +627,19 @@ export function AIChat({
 
                 <form ref={formRef} onSubmit={send} className="border-t p-4">
                     <div className="mx-auto flex max-w-3xl items-end gap-3">
+                        <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Style
+                            <select
+                                value={responseStyle}
+                                disabled={pending}
+                                onChange={(event) => changeResponseStyle(event.target.value as ResponseStyle)}
+                                className="h-12 border bg-background px-2 text-xs font-medium normal-case tracking-normal text-foreground">
+                                <option value="CONCISE">Concise</option>
+                                <option value="BALANCED">Balanced</option>
+                                <option value="DETAILED">Detailed</option>
+                                <option value="COACHING">Coaching</option>
+                            </select>
+                        </label>
                         <textarea
                             value={message}
                             onChange={(event) => setMessage(event.target.value)}

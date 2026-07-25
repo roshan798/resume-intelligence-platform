@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
+import { AIChatResponseStyle } from "@prisma/client";
 
 import { auth } from "@/auth";
 import {
     AIChatAccessError,
     AIChatService,
 } from "@/modules/ai/services/ai-chat.service";
-import { renameChatConversationSchema } from "@/modules/ai/validations/ai-chat.schema";
+import {
+    renameChatConversationSchema,
+    updateChatResponseStyleSchema,
+} from "@/modules/ai/validations/ai-chat.schema";
 
 const service = new AIChatService();
 
@@ -55,9 +59,25 @@ export async function PATCH(
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    const parsed = renameChatConversationSchema.safeParse(
-        await request.json().catch(() => null),
-    );
+    const body = await request.json().catch(() => null);
+    const style = updateChatResponseStyleSchema.safeParse(body);
+    if (style.success) {
+        try {
+            const updated = await service.setResponseStyle(
+                session.user.id,
+                (await params).id,
+                AIChatResponseStyle[style.data.responseStyle],
+            );
+            if (!updated) {
+                return NextResponse.json({ message: "Conversation not found." }, { status: 404 });
+            }
+            return NextResponse.json({ responseStyle: style.data.responseStyle });
+        } catch (error) {
+            return accessError(error);
+        }
+    }
+
+    const parsed = renameChatConversationSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json(
             { message: parsed.error.issues[0]?.message ?? "Invalid title." },

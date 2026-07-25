@@ -92,6 +92,13 @@ enum AIChatRole {
   ASSISTANT
 }
 
+enum AIChatResponseStyle {
+  CONCISE
+  BALANCED
+  DETAILED
+  COACHING
+}
+
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -128,6 +135,7 @@ model AIChatConversation {
   title     String
   summary   String?  @db.Text
   summarizedMessageCount Int @default(0)
+  responseStyle AIChatResponseStyle @default(BALANCED)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

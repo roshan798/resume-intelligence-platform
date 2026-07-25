@@ -55,9 +55,11 @@ export default async function AIChatPage() {
                     title: conversation.title,
                     updatedAt: conversation.updatedAt.toISOString(),
                     messageCount: conversation._count.messages,
+                    responseStyle: conversation.responseStyle,
                 }))}
                 initialConversationId={active?.id ?? null}
                 initialSummary={active?.summary ?? null}
+                initialResponseStyle={active?.responseStyle ?? "BALANCED"}
                 initialContext={{
                     totalMessages: active?._count.messages ?? 0,
                     activeMessages: Math.min(active?._count.messages ?? 0, 20),
