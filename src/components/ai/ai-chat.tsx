@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Bot, MessageSquarePlus, Send, Trash2, UserRound } from "lucide-react";
+import { Bot, MessageSquarePlus, Search, Send, Trash2, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,6 +35,8 @@ export function AIChat({
     const [conversationId, setConversationId] = useState(initialConversationId);
     const [messages, setMessages] = useState(initialMessages);
     const [message, setMessage] = useState("");
+    const [search, setSearch] = useState("");
+    const [searching, setSearching] = useState(false);
     const [pending, setPending] = useState(false);
     const [loadingConversation, setLoadingConversation] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,42 @@ export function AIChat({
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, pending]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        const timer = window.setTimeout(async () => {
+            setSearching(true);
+            try {
+                const response = await fetch(
+                    `/api/ai/chat${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ""}`,
+                    { signal: controller.signal },
+                );
+                const body = await response.json() as {
+                    message?: string;
+                    conversations?: Array<Conversation & { _count: { messages: number } }>;
+                };
+                if (!response.ok || !body.conversations) {
+                    throw new Error(body.message ?? "Unable to search conversations.");
+                }
+                setConversations(body.conversations.map((item) => ({
+                    id: item.id,
+                    title: item.title,
+                    updatedAt: item.updatedAt,
+                    messageCount: item._count.messages,
+                })));
+            } catch (caught) {
+                if (!(caught instanceof DOMException && caught.name === "AbortError")) {
+                    setError(caught instanceof Error ? caught.message : "Unable to search conversations.");
+                }
+            } finally {
+                if (!controller.signal.aborted) setSearching(false);
+            }
+        }, 300);
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [search]);
 
     async function selectConversation(id: string) {
         if (id === conversationId || loadingConversation) return;
@@ -199,6 +237,20 @@ export function AIChat({
                         <MessageSquarePlus aria-hidden="true" />
                         New conversation
                     </Button>
+                    <label className="relative mt-3 block">
+                        <Search
+                            aria-hidden="true"
+                            className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                        />
+                        <input
+                            type="search"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search conversations"
+                            aria-label="Search conversations"
+                            className="h-9 w-full border bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                        />
+                    </label>
                 </div>
                 <ScrollArea className="h-52 lg:h-[590px]">
                     <div className="space-y-1 p-2">
@@ -229,7 +281,13 @@ export function AIChat({
                             </div>
                         ))}
                         {conversations.length === 0 ? (
-                            <p className="p-4 text-center text-sm text-muted-foreground">No conversations yet.</p>
+                            <p className="p-4 text-center text-sm text-muted-foreground">
+                                {searching
+                                    ? "Searching…"
+                                    : search.trim()
+                                      ? "No matching conversations."
+                                      : "No conversations yet."}
+                            </p>
                         ) : null}
                     </div>
                 </ScrollArea>
