@@ -17,9 +17,13 @@ export default async function ResumesPage() {
     const resumes = await service.execute(session.user.id);
 
     return (
-        <main className="mx-auto max-w-7xl space-y-8 p-8">
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Resume Library</h1>
+        <main className="app-page">
+            <div className="page-header">
+                <div>
+                    <p className="page-eyebrow">Your source of truth</p>
+                    <h1 className="page-title">Resume library</h1>
+                    <p className="page-description">Upload, parse, version, and tailor every resume from one workspace.</p>
+                </div>
             </div>
 
             <ResumeUploadDialog />

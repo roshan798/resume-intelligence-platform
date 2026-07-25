@@ -67,7 +67,11 @@ export function ResumeUploadDialog() {
     }
 
     return (
-        <form onSubmit={upload} className="space-y-4 rounded-lg border p-6">
+        <form onSubmit={upload} className="space-y-5 rounded-xl border bg-card p-5 shadow-sm sm:p-6">
+            <div>
+                <h2 className="text-lg font-semibold">Upload a resume</h2>
+                <p className="mt-1 text-sm text-muted-foreground">PDF and DOCX are parsed automatically. LaTeX resumes also require their class file.</p>
+            </div>
             <Input
                 placeholder="Resume title"
                 value={title}

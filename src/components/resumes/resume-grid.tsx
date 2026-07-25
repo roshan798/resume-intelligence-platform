@@ -23,7 +23,7 @@ interface Props {
 export function ResumeGrid({ resumes }: Props) {
     if (resumes.length === 0) {
         return (
-            <div className="rounded-lg border border-dashed p-12 text-center">
+            <div className="empty-state">
                 <h3 className="text-lg font-semibold">No resumes found</h3>
 
                 <p className="mt-2 text-sm text-muted-foreground">

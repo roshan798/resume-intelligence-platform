@@ -492,7 +492,7 @@ export function AIChat({
     const conversationGroups = groupConversations(conversations);
 
     return (
-        <div className="relative grid min-h-162.5 border bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="relative grid min-h-162.5 overflow-clip rounded-xl border bg-card shadow-sm lg:grid-cols-[280px_minmax(0,1fr)] lg:overflow-visible">
             {sidebarOpen ? (
                 <button
                     type="button"
@@ -502,7 +502,7 @@ export function AIChat({
                 />
             ) : null}
             <aside className={cn(
-                "fixed inset-y-0 left-0 z-50 flex w-[min(85vw,320px)] min-h-0 flex-col border-r bg-card shadow-xl transition-transform lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:shadow-none",
+                "fixed inset-y-0 left-0 z-50 flex min-h-0 w-[min(85vw,320px)] flex-col border-r bg-card shadow-xl transition-transform lg:sticky lg:top-28 lg:z-auto lg:h-[calc(100vh-8rem)] lg:w-auto lg:self-start lg:translate-x-0 lg:rounded-l-xl lg:shadow-none",
                 sidebarOpen ? "translate-x-0" : "-translate-x-full",
             )}>
                 <div className="border-b p-4">
@@ -547,11 +547,11 @@ export function AIChat({
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search conversations"
                             aria-label="Search conversations"
-                            className="h-9 w-full border bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                            className="h-9 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                         />
                     </label>
                 </div>
-                <ScrollArea className="h-52 lg:h-147.5">
+                <ScrollArea className="h-52 min-h-0 lg:h-auto lg:flex-1">
                     <div className="space-y-1 p-2">
                         {conversationGroups.map((group) => (
                             <section key={group.label} className="space-y-1">

@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Home, UserRound } from "lucide-react";
+import {
+    BriefcaseBusiness,
+    ChevronRight,
+    FileText,
+    Home,
+    MessageSquareText,
+    Search,
+    Settings,
+    UserRound,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -13,6 +22,13 @@ interface BreadcrumbItem {
 }
 
 const publicPaths = new Set(["/", "/login", "/register", "/architecture"]);
+const primaryNavigation = [
+    { label: "Dashboard", href: "/dashboard", icon: Home },
+    { label: "Resumes", href: "/resumes", icon: FileText },
+    { label: "Jobs", href: "/job-descriptions", icon: Search },
+    { label: "Applications", href: "/applications", icon: BriefcaseBusiness },
+    { label: "AI Chat", href: "/ai/chat", icon: MessageSquareText },
+];
 
 export function GlobalBreadcrumbs() {
     const pathname = usePathname();
@@ -22,10 +38,68 @@ export function GlobalBreadcrumbs() {
     if (items.length === 0) return null;
 
     return (
-        <div className="border-b bg-background/95">
-            <div className="container mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
-                <nav aria-label="Breadcrumb" className="min-w-0 flex-1 overflow-x-auto">
-                    <ol className="flex min-w-max items-center gap-2 text-sm">
+        <header className="sticky top-0 z-40 border-b bg-background/90 shadow-sm backdrop-blur-xl">
+            <div className="container mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
+                <Link href="/dashboard" className="flex shrink-0 items-center gap-2" aria-label="Resume Intelligence dashboard">
+                    <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                        <FileText aria-hidden="true" className="size-4" />
+                    </span>
+                    <span className="hidden leading-tight xl:block">
+                        <span className="block text-xs text-muted-foreground">Resume Intelligence</span>
+                        <span className="block text-sm font-bold">Workspace</span>
+                    </span>
+                </Link>
+                <nav aria-label="Primary navigation" className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex">
+                    {primaryNavigation.map(({ label, href, icon: Icon }) => {
+                        const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+                        return (
+                            <Link
+                                key={href}
+                                href={href}
+                                aria-current={isActive ? "page" : undefined}
+                                className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
+                            >
+                                <Icon aria-hidden="true" className="size-4" />
+                                {label}
+                            </Link>
+                        );
+                    })}
+                </nav>
+                <div className="ml-auto flex shrink-0 items-center gap-1">
+                    <Button variant="ghost" size="icon-sm" asChild>
+                        <Link href="/settings" aria-label="Settings">
+                            <Settings aria-hidden="true" />
+                        </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href="/profile">
+                            <UserRound aria-hidden="true" />
+                            <span className="hidden sm:inline">Profile</span>
+                        </Link>
+                    </Button>
+                    <LogoutButton compact />
+                </div>
+            </div>
+            <div className="border-t border-border/60">
+                <div className="container mx-auto max-w-7xl px-4 sm:px-6">
+                <nav aria-label="Mobile navigation" className="-mx-1 flex gap-1 overflow-x-auto py-2 md:hidden">
+                    {primaryNavigation.map(({ label, href, icon: Icon }) => {
+                        const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+                        return (
+                            <Link
+                                key={href}
+                                href={href}
+                                aria-current={isActive ? "page" : undefined}
+                                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
+                            >
+                                <Icon aria-hidden="true" className="size-3.5" />
+                                {label}
+                            </Link>
+                        );
+                    })}
+                </nav>
+                <nav aria-label="Breadcrumb" className="hidden min-w-0 overflow-x-auto py-2 md:block">
+                    <ol className="flex min-w-max items-center gap-1.5 text-xs">
                     {items.map((item, index) => {
                         const isCurrent = index === items.length - 1;
                         return (
@@ -55,17 +129,9 @@ export function GlobalBreadcrumbs() {
                     })}
                     </ol>
                 </nav>
-                <div className="flex shrink-0 items-center gap-2">
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href="/profile">
-                            <UserRound aria-hidden="true" />
-                            <span className="hidden sm:inline">Profile</span>
-                        </Link>
-                    </Button>
-                    <LogoutButton compact />
                 </div>
             </div>
-        </div>
+        </header>
     );
 }
 

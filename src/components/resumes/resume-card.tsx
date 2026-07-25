@@ -24,7 +24,7 @@ interface ResumeCardProps {
 export function ResumeCard({ resume }: ResumeCardProps) {
     return (
         <Link href={`/resumes/${resume.id}`}>
-            <Card className="transition hover:border-primary">
+            <Card className="h-full transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                 <CardHeader>
                     <CardTitle>{resume.title}</CardTitle>
                 </CardHeader>

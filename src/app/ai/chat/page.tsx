@@ -42,13 +42,13 @@ export default async function AIChatPage() {
         : null;
 
     return (
-        <main className="container mx-auto max-w-7xl space-y-6 px-4 py-8">
+        <main className="app-page">
             <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                <p className="page-eyebrow">
                     Private beta
                 </p>
-                <h1 className="mt-2 text-4xl font-bold">AI career chat</h1>
-                <p className="mt-2 text-muted-foreground">
+                <h1 className="page-title">AI career chat</h1>
+                <p className="page-description">
                     Persistent, account-private conversations powered by your configured AI provider.
                 </p>
             </div>

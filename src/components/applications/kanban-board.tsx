@@ -59,10 +59,10 @@ export function KanbanBoard({ applications }: { applications: TrackedApplication
             {error ? <p role="alert" className="border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p> : null}
             <div className="flex snap-x gap-4 overflow-x-auto pb-4">
                 {columns.map((column) => (
-                    <div key={column.status} className={`min-h-96 w-72 shrink-0 snap-start border border-t-4 bg-muted/20 p-3 ${column.tone}`}>
+                    <div key={column.status} className={`min-h-96 w-72 shrink-0 snap-start rounded-xl border border-t-4 bg-muted/20 p-3 ${column.tone}`}>
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="font-semibold">{column.label}</h2>
-                            <span className="border bg-background px-2 py-0.5 text-xs text-muted-foreground">{grouped.get(column.status)?.length ?? 0}</span>
+                            <span className="rounded-full border bg-background px-2.5 py-0.5 text-xs text-muted-foreground">{grouped.get(column.status)?.length ?? 0}</span>
                         </div>
                         <div className="space-y-3">
                             {grouped.get(column.status)?.map((item) => (
