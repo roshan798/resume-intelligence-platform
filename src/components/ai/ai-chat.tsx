@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Bot, Check, Copy, MessageSquarePlus, Pencil, Search, Send, Trash2, UserRound } from "lucide-react";
+import { Bot, Check, Copy, Menu, MessageSquarePlus, Pencil, Search, Send, Trash2, UserRound, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -55,6 +55,7 @@ export function AIChat({
     const [message, setMessage] = useState("");
     const [search, setSearch] = useState("");
     const [searching, setSearching] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [pending, setPending] = useState(false);
     const [loadingConversation, setLoadingConversation] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -126,6 +127,7 @@ export function AIChat({
             setConversationId(id);
             setMessages(body.conversation.messages);
             setSummary(body.conversation.summary);
+            setSidebarOpen(false);
             setContextUsage({
                 totalMessages: body.conversation._count.messages,
                 activeMessages: Math.min(body.conversation._count.messages, 20),
@@ -305,9 +307,32 @@ export function AIChat({
     }
 
     return (
-        <div className="grid min-h-[650px] border bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
-            <aside className="flex min-h-0 flex-col border-b lg:border-r lg:border-b-0">
+        <div className="relative grid min-h-[650px] border bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
+            {sidebarOpen ? (
+                <button
+                    type="button"
+                    className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                    aria-label="Close conversation sidebar"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            ) : null}
+            <aside className={cn(
+                "fixed inset-y-0 left-0 z-50 flex w-[min(85vw,320px)] min-h-0 flex-col border-r bg-card shadow-xl transition-transform lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:shadow-none",
+                sidebarOpen ? "translate-x-0" : "-translate-x-full",
+            )}>
                 <div className="border-b p-4">
+                    <div className="mb-3 flex items-center justify-between lg:hidden">
+                        <span className="font-heading text-sm font-semibold uppercase tracking-wider">
+                            Conversations
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Close conversations"
+                            onClick={() => setSidebarOpen(false)}>
+                            <X aria-hidden="true" />
+                        </Button>
+                    </div>
                     <Button
                         className="w-full"
                         variant="outline"
@@ -317,6 +342,7 @@ export function AIChat({
                             setSummary(null);
                             setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
                             setError(null);
+                            setSidebarOpen(false);
                         }}>
                         <MessageSquarePlus aria-hidden="true" />
                         New conversation
@@ -386,6 +412,20 @@ export function AIChat({
             </aside>
 
             <section className="flex min-h-0 flex-col">
+                <div className="flex items-center gap-3 border-b p-3 lg:hidden">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSidebarOpen(true)}>
+                        <Menu aria-hidden="true" />
+                        Conversations
+                    </Button>
+                    {conversationId ? (
+                        <span className="truncate text-sm text-muted-foreground">
+                            {conversations.find((item) => item.id === conversationId)?.title}
+                        </span>
+                    ) : null}
+                </div>
                 <ScrollArea className="h-[520px] flex-1">
                     <div className="mx-auto max-w-3xl space-y-6 p-5 md:p-8">
                         {contextUsage.totalMessages > 0 ? (
