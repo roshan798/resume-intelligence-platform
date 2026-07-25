@@ -19,6 +19,8 @@ interface ChatMessage {
     id: string;
     role: "USER" | "ASSISTANT";
     content: string;
+    provider?: string | null;
+    modelUsed?: string | null;
     createdAt: string;
 }
 
@@ -433,25 +435,31 @@ export function AIChat({
                                         />
                                     </div>
                                     {item.role === "ASSISTANT" && item.content ? (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="xs"
-                                            className="mt-1"
-                                            onClick={() => copyMessage(item)}
-                                            aria-label="Copy response">
-                                            {copiedMessageId === item.id ? (
-                                                <>
-                                                    <Check aria-hidden="true" />
-                                                    Copied
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Copy aria-hidden="true" />
-                                                    Copy
-                                                </>
-                                            )}
-                                        </Button>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="xs"
+                                                onClick={() => copyMessage(item)}
+                                                aria-label="Copy response">
+                                                {copiedMessageId === item.id ? (
+                                                    <>
+                                                        <Check aria-hidden="true" />
+                                                        Copied
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy aria-hidden="true" />
+                                                        Copy
+                                                    </>
+                                                )}
+                                            </Button>
+                                            {item.provider || item.modelUsed ? (
+                                                <span className="text-[11px] text-muted-foreground">
+                                                    {[item.provider, item.modelUsed].filter(Boolean).join(" · ")}
+                                                </span>
+                                            ) : null}
+                                        </div>
                                     ) : null}
                                 </div>
                                 {item.role === "USER" ? (

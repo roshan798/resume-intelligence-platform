@@ -78,6 +78,8 @@ export class AIChatService {
                         id: true,
                         role: true,
                         content: true,
+                        provider: true,
+                        modelUsed: true,
                         createdAt: true,
                     },
                 },
@@ -133,7 +135,14 @@ export class AIChatService {
                     completionTokens: response.usage?.completionTokens ?? 0,
                     totalTokens: response.usage?.totalTokens ?? 0,
                 },
-                select: { id: true, role: true, content: true, createdAt: true },
+                select: {
+                    id: true,
+                    role: true,
+                    content: true,
+                    provider: true,
+                    modelUsed: true,
+                    createdAt: true,
+                },
             });
             await prisma.aIChatConversation.update({
                 where: { id: conversation.id },
@@ -220,7 +229,14 @@ export class AIChatService {
                     completionTokens: generation.usage?.completionTokens ?? 0,
                     totalTokens: generation.usage?.totalTokens ?? 0,
                 },
-                select: { id: true, role: true, content: true, createdAt: true },
+                select: {
+                    id: true,
+                    role: true,
+                    content: true,
+                    provider: true,
+                    modelUsed: true,
+                    createdAt: true,
+                },
             });
             await prisma.aIChatConversation.update({
                 where: { id: conversation.id },
