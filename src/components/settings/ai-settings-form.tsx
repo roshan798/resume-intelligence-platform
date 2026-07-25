@@ -10,6 +10,7 @@ const features = [
     ["generate-summary", "Summary generation"],
     ["rewrite-bullets", "Bullet rewriting"],
     ["tailored-draft", "Tailored drafts"],
+    ["ai-chat", "AI chat"],
 ] as const;
 
 interface Props {

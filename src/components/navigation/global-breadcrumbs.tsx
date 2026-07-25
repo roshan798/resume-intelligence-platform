@@ -104,7 +104,9 @@ function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
             break;
         case "ai":
             items.push({ label: "AI suggestions", href: "/ai/suggestions" });
-            if (segments[1] && segments[1] !== "suggestions") {
+            if (segments[1] === "chat") {
+                items.push({ label: "AI chat" });
+            } else if (segments[1] && segments[1] !== "suggestions") {
                 items.push({ label: titleCase(segments[1]) });
             }
             break;

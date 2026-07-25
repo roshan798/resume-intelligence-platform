@@ -39,6 +39,10 @@ export function QuickActions() {
                 </Button>
 
                 <Button variant="outline" asChild>
+                    <Link href="/ai/chat">AI Chat</Link>
+                </Button>
+
+                <Button variant="outline" asChild>
                     <Link href="/settings">AI Settings</Link>
                 </Button>
 
