@@ -6,6 +6,7 @@ import { Bot, MessageSquarePlus, Send, Trash2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { ChatMarkdown } from "./chat-markdown";
 
 interface Conversation {
     id: string;
@@ -259,7 +260,10 @@ export function AIChat({
                                     "max-w-[85%] whitespace-pre-wrap border px-4 py-3 text-sm leading-6",
                                     item.role === "USER" ? "bg-foreground text-background" : "bg-background",
                                 )}>
-                                    {item.content}
+                                    <ChatMarkdown
+                                        content={item.content}
+                                        inverse={item.role === "USER"}
+                                    />
                                 </div>
                                 {item.role === "USER" ? (
                                     <div className="flex size-8 shrink-0 items-center justify-center border">
