@@ -8,6 +8,7 @@ import {
 } from "@/modules/ai/services/ai-chat.service";
 import {
     renameChatConversationSchema,
+    updateChatContextSchema,
     updateChatResponseStyleSchema,
 } from "@/modules/ai/validations/ai-chat.schema";
 
@@ -72,6 +73,23 @@ export async function PATCH(
                 return NextResponse.json({ message: "Conversation not found." }, { status: 404 });
             }
             return NextResponse.json({ responseStyle: style.data.responseStyle });
+        } catch (error) {
+            return accessError(error);
+        }
+    }
+
+    const context = updateChatContextSchema.safeParse(body);
+    if (context.success) {
+        try {
+            const updated = await service.setContext(
+                session.user.id,
+                (await params).id,
+                context.data,
+            );
+            if (!updated) {
+                return NextResponse.json({ message: "Conversation not found." }, { status: 404 });
+            }
+            return NextResponse.json({ context: context.data });
         } catch (error) {
             return accessError(error);
         }
