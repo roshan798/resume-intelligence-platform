@@ -36,16 +36,37 @@ export async function POST(request: Request) {
         );
     }
 
-    try {
-        const result = await service.send(session.user.id, parsed.data);
-        return NextResponse.json(result, { status: parsed.data.conversationId ? 200 : 201 });
-    } catch (error) {
-        logger.error(
-            { err: error, userId: session.user.id, conversationId: parsed.data.conversationId },
-            "AI chat request failed",
-        );
-        return chatError(error);
-    }
+    const encoder = new TextEncoder();
+    const userId = session.user.id;
+    const stream = new ReadableStream({
+        async start(controller) {
+            try {
+                for await (const event of service.sendStream(userId, parsed.data)) {
+                    controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+                }
+            } catch (error) {
+                logger.error(
+                    { err: error, userId, conversationId: parsed.data.conversationId },
+                    "AI chat streaming request failed",
+                );
+                controller.enqueue(
+                    encoder.encode(`${JSON.stringify({
+                        type: "error",
+                        message: error instanceof Error ? error.message : "AI chat is unavailable.",
+                    })}\n`),
+                );
+            } finally {
+                controller.close();
+            }
+        },
+    });
+    return new Response(stream, {
+        headers: {
+            "Content-Type": "application/x-ndjson; charset=utf-8",
+            "Cache-Control": "no-cache, no-transform",
+            "X-Content-Type-Options": "nosniff",
+        },
+    });
 }
 
 function chatError(error: unknown) {
