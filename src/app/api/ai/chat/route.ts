@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AIChatResponseStyle } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -39,10 +40,16 @@ export async function POST(request: Request) {
 
     const encoder = new TextEncoder();
     const userId = session.user.id;
+    const chatInput = {
+        ...parsed.data,
+        responseStyle: parsed.data.responseStyle
+            ? AIChatResponseStyle[parsed.data.responseStyle]
+            : undefined,
+    };
     const stream = new ReadableStream({
         async start(controller) {
             try {
-                for await (const event of service.sendStream(userId, parsed.data)) {
+                for await (const event of service.sendStream(userId, chatInput)) {
                     controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
                 }
             } catch (error) {

@@ -1,4 +1,4 @@
-import { AIChatRole, AIProvider } from "@prisma/client";
+import { AIChatResponseStyle, AIChatRole, AIProvider } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
@@ -55,6 +55,7 @@ export class AIChatService {
             select: {
                 id: true,
                 title: true,
+                responseStyle: true,
                 createdAt: true,
                 updatedAt: true,
                 _count: { select: { messages: true } },
@@ -70,6 +71,7 @@ export class AIChatService {
                 id: true,
                 title: true,
                 summary: true,
+                responseStyle: true,
                 summarizedMessageCount: true,
                 _count: { select: { messages: true } },
                 messages: {
@@ -91,19 +93,24 @@ export class AIChatService {
         return conversation;
     }
 
-    async send(userId: string, input: { conversationId?: string | null; message: string }) {
+    async send(userId: string, input: {
+        conversationId?: string | null;
+        message: string;
+        responseStyle?: AIChatResponseStyle;
+    }) {
         await this.assertAccess(userId);
         const conversation = input.conversationId
             ? await prisma.aIChatConversation.findFirst({
                   where: { id: input.conversationId, userId },
-                  select: { id: true, title: true },
+                  select: { id: true, title: true, responseStyle: true },
               })
             : await prisma.aIChatConversation.create({
                   data: {
                       userId,
                       title: titleFrom(input.message),
+                      responseStyle: input.responseStyle ?? AIChatResponseStyle.BALANCED,
                   },
-                  select: { id: true, title: true },
+                  select: { id: true, title: true, responseStyle: true },
               });
         if (!conversation) throw new AIChatAccessError("Conversation not found.");
 
@@ -122,7 +129,7 @@ export class AIChatService {
             const response = await this.gateway.generate({
                 operation: "ai-chat",
                 userId,
-                systemPrompt,
+                systemPrompt: responseSystemPrompt(conversation.responseStyle),
                 prompt: formatMemory(memory.summary, memory.recent),
                 temperature: 0.35,
                 maxTokens: 1_500,
@@ -166,18 +173,26 @@ export class AIChatService {
 
     async *sendStream(
         userId: string,
-        input: { conversationId?: string | null; message: string },
+        input: {
+            conversationId?: string | null;
+            message: string;
+            responseStyle?: AIChatResponseStyle;
+        },
     ) {
         await this.assertAccess(userId);
         const isNew = !input.conversationId;
         const conversation = input.conversationId
             ? await prisma.aIChatConversation.findFirst({
                   where: { id: input.conversationId, userId },
-                  select: { id: true, title: true },
+                  select: { id: true, title: true, responseStyle: true },
               })
             : await prisma.aIChatConversation.create({
-                  data: { userId, title: titleFrom(input.message) },
-                  select: { id: true, title: true },
+                  data: {
+                      userId,
+                      title: titleFrom(input.message),
+                      responseStyle: input.responseStyle ?? AIChatResponseStyle.BALANCED,
+                  },
+                  select: { id: true, title: true, responseStyle: true },
               });
         if (!conversation) throw new AIChatAccessError("Conversation not found.");
 
@@ -210,7 +225,7 @@ export class AIChatService {
             for await (const event of this.gateway.stream({
                 operation: "ai-chat",
                 userId,
-                systemPrompt,
+                systemPrompt: responseSystemPrompt(conversation.responseStyle),
                 prompt: formatMemory(memory.summary, memory.recent),
                 temperature: 0.35,
                 maxTokens: 1_500,
@@ -274,6 +289,19 @@ export class AIChatService {
         const result = await prisma.aIChatConversation.updateMany({
             where: { id: conversationId, userId },
             data: { title },
+        });
+        return result.count > 0;
+    }
+
+    async setResponseStyle(
+        userId: string,
+        conversationId: string,
+        responseStyle: AIChatResponseStyle,
+    ) {
+        await this.assertAccess(userId);
+        const result = await prisma.aIChatConversation.updateMany({
+            where: { id: conversationId, userId },
+            data: { responseStyle },
         });
         return result.count > 0;
     }
@@ -376,4 +404,14 @@ function formatMemory(
             `${item.role === AIChatRole.USER ? "User" : "Assistant"}: ${item.content}`
         ),
     ].filter(Boolean).join("\n\n");
+}
+
+function responseSystemPrompt(style: AIChatResponseStyle) {
+    const styleInstruction: Record<AIChatResponseStyle, string> = {
+        CONCISE: "Respond concisely. Prefer short paragraphs or bullets and include only essential details.",
+        BALANCED: "Give a practical, moderately detailed answer with clear structure.",
+        DETAILED: "Give a thorough answer with reasoning, examples, tradeoffs, and actionable next steps.",
+        COACHING: "Use a supportive coaching style. Ask useful reflective questions and finish with concrete next actions.",
+    };
+    return `${systemPrompt}\n${styleInstruction[style]}`;
 }
