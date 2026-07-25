@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
+import { logger } from "@/lib/logger";
 import { ResumeVersionRepository } from "../repositories/resume-version.repository";
 
 const forbiddenSource = /(?:\\(?:write18|openin|openout|read|immediate|input|include|includegraphics|bibliography|addbibresource)\b|\.\.[\\/]|(?:^|[\s{])[A-Za-z]:[\\/])/imu;
@@ -141,7 +142,10 @@ export class CompileLatexPreviewService {
             );
             let output = "";
             const collect = (chunk: Buffer) => {
-                if (output.length < 12_000) output += chunk.toString("utf8");
+                output += chunk.toString("utf8");
+                // Keep the tail because TeX reports the actionable failure after
+                // verbose package and class loading output.
+                if (output.length > 100_000) output = output.slice(-100_000);
             };
             compiler.stdout.on("data", collect);
             compiler.stderr.on("data", collect);
@@ -159,15 +163,44 @@ export class CompileLatexPreviewService {
                 if (timedOut) {
                     reject(new LatexPreviewError("LaTeX compilation exceeded the 15-second limit."));
                 } else if (code === 0) resolve();
-                else reject(new LatexPreviewError(this.compileError(output)));
+                else {
+                    const message = this.compileError(output);
+                    logger.error(
+                        {
+                            exitCode: code,
+                            compilerOutputTail: output.slice(-12_000),
+                        },
+                        "LaTeX compiler exited with an error",
+                    );
+                    reject(new LatexPreviewError(message));
+                }
             });
         });
     }
 
     private compileError(output: string): string {
-        const errorLine = output.split(/\r?\n/u).find((line) => line.startsWith("!"));
-        return errorLine
-            ? `LaTeX compilation failed: ${errorLine.slice(1).trim()}`
-            : "LaTeX compilation failed. Confirm that the matching .cls or .sty file was uploaded.";
+        const lines = output
+            .split(/\r?\n/u)
+            .map((line) => line.trim())
+            .filter(Boolean);
+        const errorLine = [...lines]
+            .reverse()
+            .find(
+                (line) =>
+                    line.startsWith("!") ||
+                    /(?:LaTeX Error|Emergency stop|Fatal error|not found|undefined control sequence)/iu.test(
+                        line,
+                    ) ||
+                    /^resume\.tex:\d+:/u.test(line),
+            );
+        if (errorLine) {
+            const detail = errorLine.replace(/^!\s*/u, "").slice(0, 500);
+            return `LaTeX compilation failed: ${detail}`;
+        }
+
+        const finalContext = lines.slice(-4).join(" ").slice(0, 500);
+        return finalContext
+            ? `LaTeX compilation failed: ${finalContext}`
+            : "LaTeX compilation failed without diagnostic output.";
     }
 }

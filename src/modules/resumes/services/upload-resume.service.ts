@@ -43,11 +43,17 @@ export class UploadResumeService {
         this.validateFileSignature(buffer, sourceFormat);
         let latexStyleSource: string | null = null;
         let latexStyleFilename: string | null = null;
+        if (sourceFormat === "LATEX" && !input.styleFile) {
+            throw new ResumeUploadError(
+                "LATEX_CLASS_REQUIRED",
+                "A complete .cls class file is required with every LaTeX resume.",
+            );
+        }
         if (input.styleFile) {
             if (sourceFormat !== "LATEX") {
                 throw new ResumeUploadError(
                     "INVALID_LATEX_STYLE",
-                    "A .cls or .sty file can only accompany a LaTeX resume.",
+                    "A .cls file can only accompany a LaTeX resume.",
                 );
             }
             try {

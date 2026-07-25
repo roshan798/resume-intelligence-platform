@@ -21,6 +21,7 @@ import { GetVersionLineageService } from "@/modules/resumes/services/get-version
 import { GetVersionService } from "@/modules/resumes/services/get-version.service";
 import { GetVersionSimilarityService } from "@/modules/resumes/services/get-version-similarity.service";
 import { AISuggestionService } from "@/modules/ai/services/ai-suggestion.service";
+import { LatexClassUpload } from "@/components/resumes/latex-class-upload";
 
 interface ResumeVersionPageProps {
     params: Promise<{
@@ -95,6 +96,13 @@ export default async function ResumeVersionPage({
                 sourceFormat={version.sourceFormat}
                 fileMimeType={version.fileAsset?.mimeType}
             />
+
+            {version.sourceFormat === "LATEX" ? (
+                <LatexClassUpload
+                    versionId={version.id}
+                    currentFilename={version.latexStyleFilename}
+                />
+            ) : null}
 
             <VersionSimilarity analysis={similarity} />
 

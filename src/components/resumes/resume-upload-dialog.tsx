@@ -21,10 +21,11 @@ export function ResumeUploadDialog() {
     const [styleFile, setStyleFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const isLatex = file?.name.toLocaleLowerCase().endsWith(".tex") ?? false;
 
     async function upload(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!file || title.trim().length < 3) return;
+        if (!file || title.trim().length < 3 || (isLatex && !styleFile)) return;
 
         setLoading(true);
         setError(null);
@@ -74,20 +75,6 @@ export function ResumeUploadDialog() {
                 required
                 onChange={(event) => setTitle(event.target.value)}
             />
-            <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="latex-style-file">
-                    Optional LaTeX style (.cls or .sty)
-                </label>
-                <Input
-                    id="latex-style-file"
-                    type="file"
-                    accept=".cls,.sty"
-                    onChange={(event) => setStyleFile(event.target.files?.[0] ?? null)}
-                />
-                <p className="text-xs text-muted-foreground">
-                    Used only with a .tex resume. For example, upload resume.cls with a document that uses \\documentclass{'{resume}'}.
-                </p>
-            </div>
             <Input
                 placeholder="Primary Stack (Spring Boot, MERN...)"
                 value={primaryStack}
@@ -103,8 +90,32 @@ export function ResumeUploadDialog() {
                 type="file"
                 accept=".pdf,.docx,.tex"
                 required
-                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                onChange={(event) => {
+                    const nextFile = event.target.files?.[0] ?? null;
+                    setFile(nextFile);
+                    if (!nextFile?.name.toLocaleLowerCase().endsWith(".tex")) {
+                        setStyleFile(null);
+                    }
+                }}
             />
+            {isLatex ? (
+                <div className="space-y-1 rounded border border-primary/30 bg-primary/5 p-4">
+                    <label className="text-sm font-medium" htmlFor="latex-style-file">
+                        LaTeX class file (.cls) — required
+                    </label>
+                    <Input
+                        id="latex-style-file"
+                        type="file"
+                        accept=".cls"
+                        required
+                        onChange={(event) => setStyleFile(event.target.files?.[0] ?? null)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Upload the complete class file referenced by the resume,
+                        such as resume.cls for \\documentclass{'{resume}'}.
+                    </p>
+                </div>
+            ) : null}
 
             {error && (
                 <p role="alert" className="text-sm text-destructive">
@@ -114,7 +125,12 @@ export function ResumeUploadDialog() {
 
             <Button
                 type="submit"
-                disabled={loading || !file || title.trim().length < 3}
+                disabled={
+                    loading ||
+                    !file ||
+                    title.trim().length < 3 ||
+                    (isLatex && !styleFile)
+                }
             >
                 {loading ? "Uploading and parsing..." : "Upload Resume"}
             </Button>

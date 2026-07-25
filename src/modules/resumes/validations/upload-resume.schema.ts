@@ -51,14 +51,14 @@ export function validateFile(file: File): ResumeSourceFormat {
     );
 }
 
-export function validateLatexStyleFile(file: File): "CLS" | "STY" {
+export function validateLatexStyleFile(file: File): "CLS" {
     const extension = file.name.split(".").pop()?.toLowerCase();
     const maxSize = 1024 * 1024;
     if (file.size === 0 || file.size > maxSize) {
         throw new Error("The LaTeX style file must be between 1 byte and 1MB.");
     }
     if (
-        !["cls", "sty"].includes(extension ?? "") ||
+        extension !== "cls" ||
         ![
             "text/x-tex",
             "application/x-tex",
@@ -67,7 +67,7 @@ export function validateLatexStyleFile(file: File): "CLS" | "STY" {
             "",
         ].includes(file.type.toLowerCase())
     ) {
-        throw new Error("Upload a valid .cls or .sty LaTeX style file.");
+        throw new Error("Upload a valid .cls LaTeX class file.");
     }
-    return extension === "cls" ? "CLS" : "STY";
+    return "CLS";
 }
