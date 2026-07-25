@@ -246,6 +246,15 @@ export class AIChatService {
         return result.count > 0;
     }
 
+    async rename(userId: string, conversationId: string, title: string) {
+        await this.assertAccess(userId);
+        const result = await prisma.aIChatConversation.updateMany({
+            where: { id: conversationId, userId },
+            data: { title },
+        });
+        return result.count > 0;
+    }
+
     private async assertAccess(userId: string) {
         if (!(await this.access(userId))) {
             throw new AIChatAccessError("AI chat is not enabled for this account.");
