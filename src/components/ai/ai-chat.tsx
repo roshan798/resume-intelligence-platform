@@ -25,15 +25,18 @@ interface ChatMessage {
 export function AIChat({
     initialConversations,
     initialConversationId,
+    initialSummary,
     initialMessages,
 }: {
     initialConversations: Conversation[];
     initialConversationId: string | null;
+    initialSummary: string | null;
     initialMessages: ChatMessage[];
 }) {
     const [conversations, setConversations] = useState(initialConversations);
     const [conversationId, setConversationId] = useState(initialConversationId);
     const [messages, setMessages] = useState(initialMessages);
+    const [summary, setSummary] = useState(initialSummary);
     const [message, setMessage] = useState("");
     const [search, setSearch] = useState("");
     const [searching, setSearching] = useState(false);
@@ -91,13 +94,14 @@ export function AIChat({
             const response = await fetch(`/api/ai/chat/${id}`);
             const body = await response.json() as {
                 message?: string;
-                conversation?: { messages: ChatMessage[] };
+                conversation?: { messages: ChatMessage[]; summary: string | null };
             };
             if (!response.ok || !body.conversation) {
                 throw new Error(body.message ?? "Unable to load conversation.");
             }
             setConversationId(id);
             setMessages(body.conversation.messages);
+            setSummary(body.conversation.summary);
         } catch (caught) {
             setError(caught instanceof Error ? caught.message : "Unable to load conversation.");
         } finally {
@@ -155,7 +159,7 @@ export function AIChat({
                 for (const line of lines) {
                     if (!line.trim()) continue;
                     const event = JSON.parse(line) as
-                        | { type: "start"; conversation: { id: string; title: string }; userMessage: ChatMessage }
+                        | { type: "start"; conversation: { id: string; title: string; summary: string | null }; userMessage: ChatMessage }
                         | { type: "delta"; text: string }
                         | { type: "done"; assistantMessage: ChatMessage }
                         | { type: "error"; message: string };
@@ -163,6 +167,7 @@ export function AIChat({
                         streamedConversation = event.conversation;
                         persistedUser = event.userMessage;
                         setConversationId(event.conversation.id);
+                        setSummary(event.conversation.summary);
                         setMessages((current) => current.map((item) =>
                             item.id === optimistic.id ? event.userMessage : item
                         ));
@@ -220,6 +225,7 @@ export function AIChat({
         if (id === conversationId) {
             setConversationId(null);
             setMessages([]);
+            setSummary(null);
         }
     }
 
@@ -266,6 +272,7 @@ export function AIChat({
                         onClick={() => {
                             setConversationId(null);
                             setMessages([]);
+                            setSummary(null);
                             setError(null);
                         }}>
                         <MessageSquarePlus aria-hidden="true" />
@@ -338,6 +345,16 @@ export function AIChat({
             <section className="flex min-h-0 flex-col">
                 <ScrollArea className="h-[520px] flex-1">
                     <div className="mx-auto max-w-3xl space-y-6 p-5 md:p-8">
+                        {summary ? (
+                            <details className="border bg-muted/40 p-4 text-sm">
+                                <summary className="cursor-pointer font-semibold">
+                                    Earlier conversation summary
+                                </summary>
+                                <div className="mt-3 text-muted-foreground">
+                                    <ChatMarkdown content={summary} />
+                                </div>
+                            </details>
+                        ) : null}
                         {messages.length === 0 ? (
                             <div className="py-20 text-center">
                                 <Bot className="mx-auto size-10 text-muted-foreground" />
