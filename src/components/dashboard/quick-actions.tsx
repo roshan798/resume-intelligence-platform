@@ -41,6 +41,10 @@ export function QuickActions() {
                 <Button variant="outline" asChild>
                     <Link href="/settings">AI Settings</Link>
                 </Button>
+
+                <Button variant="ghost" asChild>
+                    <Link href="/profile">Profile</Link>
+                </Button>
             </CardContent>
         </Card>
     );

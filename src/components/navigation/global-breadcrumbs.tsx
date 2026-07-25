@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRight, Home, UserRound } from "lucide-react";
 import { usePathname } from "next/navigation";
+
+import { LogoutButton } from "@/components/auth/logout-button";
+import { Button } from "@/components/ui/button";
 
 interface BreadcrumbItem {
     label: string;
@@ -20,11 +23,9 @@ export function GlobalBreadcrumbs() {
 
     return (
         <div className="border-b bg-background/95">
-            <nav
-                aria-label="Breadcrumb"
-                className="container mx-auto max-w-7xl overflow-x-auto px-4 py-3"
-            >
-                <ol className="flex min-w-max items-center gap-2 text-sm">
+            <div className="container mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
+                <nav aria-label="Breadcrumb" className="min-w-0 flex-1 overflow-x-auto">
+                    <ol className="flex min-w-max items-center gap-2 text-sm">
                     {items.map((item, index) => {
                         const isCurrent = index === items.length - 1;
                         return (
@@ -52,8 +53,18 @@ export function GlobalBreadcrumbs() {
                             </li>
                         );
                     })}
-                </ol>
-            </nav>
+                    </ol>
+                </nav>
+                <div className="flex shrink-0 items-center gap-2">
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href="/profile">
+                            <UserRound aria-hidden="true" />
+                            <span className="hidden sm:inline">Profile</span>
+                        </Link>
+                    </Button>
+                    <LogoutButton compact />
+                </div>
+            </div>
         </div>
     );
 }
@@ -105,6 +116,9 @@ function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
             break;
         case "settings":
             items.push({ label: "Settings" });
+            break;
+        case "profile":
+            items.push({ label: "Profile" });
             break;
         default:
             items.push({ label: titleCase(first) });

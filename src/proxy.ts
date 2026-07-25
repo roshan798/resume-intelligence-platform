@@ -26,7 +26,7 @@ export function proxy(request: NextRequest) {
         request.cookies.get("authjs.session-token")?.value ||
         request.cookies.get("__Secure-next-auth.session-token")?.value ||
         request.cookies.get("next-auth.session-token")?.value;
-    const protectedPage = ["/dashboard", "/resumes", "/applications", "/ai", "/settings", "/matches", "/match-results", "/semantic-search", "/job-descriptions"].some((prefix) => pathname.startsWith(prefix));
+    const protectedPage = ["/dashboard", "/resumes", "/applications", "/ai", "/settings", "/profile", "/matches", "/match-results", "/semantic-search", "/job-descriptions"].some((prefix) => pathname.startsWith(prefix));
     if (!sessionToken && protectedPage) return NextResponse.redirect(new URL("/login", request.url));
     if (sessionToken && (pathname === "/login" || pathname === "/register")) return NextResponse.redirect(new URL("/dashboard", request.url));
 
