@@ -112,7 +112,7 @@ function Detail({
             <Icon aria-hidden="true" className="mt-0.5 size-4 text-muted-foreground" />
             <div className="min-w-0">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-                <p className="mt-1 break-words font-medium capitalize">{value}</p>
+                <p className="mt-1 wrap-break-word font-medium capitalize">{value}</p>
             </div>
         </div>
     );
