@@ -24,10 +24,30 @@ export class AIChatService {
         return Boolean(user?.aiChatEnabled);
     }
 
-    async list(userId: string) {
+    async list(userId: string, query?: string) {
         await this.assertAccess(userId);
+        const search = query?.trim().slice(0, 100);
         return prisma.aIChatConversation.findMany({
-            where: { userId },
+            where: {
+                userId,
+                ...(search
+                    ? {
+                          OR: [
+                              { title: { contains: search, mode: "insensitive" as const } },
+                              {
+                                  messages: {
+                                      some: {
+                                          content: {
+                                              contains: search,
+                                              mode: "insensitive" as const,
+                                          },
+                                      },
+                                  },
+                              },
+                          ],
+                      }
+                    : {}),
+            },
             orderBy: { updatedAt: "desc" },
             take: 30,
             select: {

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
@@ -10,13 +10,14 @@ import { sendChatMessageSchema } from "@/modules/ai/validations/ai-chat.schema";
 
 const service = new AIChatService();
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
     try {
-        return NextResponse.json({ conversations: await service.list(session.user.id) });
+        const query = request.nextUrl.searchParams.get("q") ?? undefined;
+        return NextResponse.json({ conversations: await service.list(session.user.id, query) });
     } catch (error) {
         return chatError(error);
     }
