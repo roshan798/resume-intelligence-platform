@@ -22,21 +22,31 @@ interface ChatMessage {
     createdAt: string;
 }
 
+interface ContextUsage {
+    totalMessages: number;
+    activeMessages: number;
+    summarizedMessages: number;
+    limit: number;
+}
+
 export function AIChat({
     initialConversations,
     initialConversationId,
     initialSummary,
+    initialContext,
     initialMessages,
 }: {
     initialConversations: Conversation[];
     initialConversationId: string | null;
     initialSummary: string | null;
+    initialContext: ContextUsage;
     initialMessages: ChatMessage[];
 }) {
     const [conversations, setConversations] = useState(initialConversations);
     const [conversationId, setConversationId] = useState(initialConversationId);
     const [messages, setMessages] = useState(initialMessages);
     const [summary, setSummary] = useState(initialSummary);
+    const [contextUsage, setContextUsage] = useState(initialContext);
     const [message, setMessage] = useState("");
     const [search, setSearch] = useState("");
     const [searching, setSearching] = useState(false);
@@ -94,7 +104,12 @@ export function AIChat({
             const response = await fetch(`/api/ai/chat/${id}`);
             const body = await response.json() as {
                 message?: string;
-                conversation?: { messages: ChatMessage[]; summary: string | null };
+                conversation?: {
+                    messages: ChatMessage[];
+                    summary: string | null;
+                    summarizedMessageCount: number;
+                    _count: { messages: number };
+                };
             };
             if (!response.ok || !body.conversation) {
                 throw new Error(body.message ?? "Unable to load conversation.");
@@ -102,6 +117,12 @@ export function AIChat({
             setConversationId(id);
             setMessages(body.conversation.messages);
             setSummary(body.conversation.summary);
+            setContextUsage({
+                totalMessages: body.conversation._count.messages,
+                activeMessages: Math.min(body.conversation._count.messages, 20),
+                summarizedMessages: body.conversation.summarizedMessageCount,
+                limit: 20,
+            });
         } catch (caught) {
             setError(caught instanceof Error ? caught.message : "Unable to load conversation.");
         } finally {
@@ -159,7 +180,12 @@ export function AIChat({
                 for (const line of lines) {
                     if (!line.trim()) continue;
                     const event = JSON.parse(line) as
-                        | { type: "start"; conversation: { id: string; title: string; summary: string | null }; userMessage: ChatMessage }
+                        | {
+                            type: "start";
+                            conversation: { id: string; title: string; summary: string | null };
+                            context: ContextUsage;
+                            userMessage: ChatMessage;
+                        }
                         | { type: "delta"; text: string }
                         | { type: "done"; assistantMessage: ChatMessage }
                         | { type: "error"; message: string };
@@ -168,6 +194,7 @@ export function AIChat({
                         persistedUser = event.userMessage;
                         setConversationId(event.conversation.id);
                         setSummary(event.conversation.summary);
+                        setContextUsage(event.context);
                         setMessages((current) => current.map((item) =>
                             item.id === optimistic.id ? event.userMessage : item
                         ));
@@ -181,6 +208,11 @@ export function AIChat({
                         setMessages((current) => current.map((item) =>
                             item.id === streamingId ? event.assistantMessage : item
                         ));
+                        setContextUsage((current) => ({
+                            ...current,
+                            totalMessages: current.totalMessages + 1,
+                            activeMessages: Math.min(current.totalMessages + 1, current.limit),
+                        }));
                     } else {
                         throw new Error(event.message);
                     }
@@ -226,6 +258,7 @@ export function AIChat({
             setConversationId(null);
             setMessages([]);
             setSummary(null);
+            setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
         }
     }
 
@@ -273,6 +306,7 @@ export function AIChat({
                             setConversationId(null);
                             setMessages([]);
                             setSummary(null);
+                            setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
                             setError(null);
                         }}>
                         <MessageSquarePlus aria-hidden="true" />
@@ -345,6 +379,21 @@ export function AIChat({
             <section className="flex min-h-0 flex-col">
                 <ScrollArea className="h-[520px] flex-1">
                     <div className="mx-auto max-w-3xl space-y-6 p-5 md:p-8">
+                        {contextUsage.totalMessages > 0 ? (
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                                <span>
+                                    {contextUsage.activeMessages} of {contextUsage.totalMessages} messages in active memory
+                                </span>
+                                {contextUsage.totalMessages > contextUsage.limit ? (
+                                    <>
+                                        <span aria-hidden="true">·</span>
+                                        <span>
+                                            {contextUsage.summarizedMessages} older messages summarized
+                                        </span>
+                                    </>
+                                ) : null}
+                            </div>
+                        ) : null}
                         {summary ? (
                             <details className="border bg-muted/40 p-4 text-sm">
                                 <summary className="cursor-pointer font-semibold">

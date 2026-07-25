@@ -70,6 +70,8 @@ export class AIChatService {
                 id: true,
                 title: true,
                 summary: true,
+                summarizedMessageCount: true,
+                _count: { select: { messages: true } },
                 messages: {
                     orderBy: { createdAt: "asc" },
                     select: {
@@ -176,6 +178,12 @@ export class AIChatService {
         yield {
             type: "start" as const,
             conversation: { ...conversation, summary: memory.summary },
+            context: {
+                totalMessages: memory.totalMessages,
+                activeMessages: Math.min(memory.totalMessages, memoryMessageLimit),
+                summarizedMessages: memory.summarizedMessages,
+                limit: memoryMessageLimit,
+            },
             userMessage,
         };
         let content = "";
@@ -264,6 +272,7 @@ export class AIChatService {
 
         const olderMessageCount = Math.max(0, conversation._count.messages - memoryMessageLimit);
         let summary = conversation.summary;
+        let summarizedMessageCount = conversation.summarizedMessageCount;
         if (
             olderMessageCount > 0 &&
             olderMessageCount - conversation.summarizedMessageCount >= summaryRefreshInterval
@@ -298,6 +307,7 @@ export class AIChatService {
                         summarizedMessageCount: olderMessageCount,
                     },
                 });
+                summarizedMessageCount = olderMessageCount;
             } catch (error) {
                 logger.warn(
                     { err: error, userId, conversationId },
@@ -313,7 +323,15 @@ export class AIChatService {
             select: { role: true, content: true },
         });
         recent.reverse();
-        return { summary, recent };
+        return {
+            summary,
+            recent,
+            totalMessages: conversation._count.messages,
+            summarizedMessages: Math.min(
+                olderMessageCount,
+                summarizedMessageCount,
+            ),
+        };
     }
 }
 
