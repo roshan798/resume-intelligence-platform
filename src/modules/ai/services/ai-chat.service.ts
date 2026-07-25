@@ -1,10 +1,12 @@
 import { AIChatRole, AIProvider } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 import { AIGatewayService } from "./ai-gateway.service";
 
 const memoryMessageLimit = 20;
+const summaryRefreshInterval = 10;
 const systemPrompt = `You are the private career assistant inside Resume Intelligence Platform.
 Help with resumes, job descriptions, interview preparation, application strategy, and related career questions.
 Use the conversation history as memory, but never claim to know facts the user has not provided.
@@ -67,6 +69,7 @@ export class AIChatService {
             select: {
                 id: true,
                 title: true,
+                summary: true,
                 messages: {
                     orderBy: { createdAt: "asc" },
                     select: {
@@ -106,22 +109,14 @@ export class AIChatService {
             select: { id: true, role: true, content: true, createdAt: true },
         });
 
-        const recent = await prisma.aIChatMessage.findMany({
-            where: { conversationId: conversation.id },
-            orderBy: { createdAt: "desc" },
-            take: memoryMessageLimit,
-            select: { role: true, content: true },
-        });
-        recent.reverse();
+        const memory = await this.memory(userId, conversation.id);
 
         try {
             const response = await this.gateway.generate({
                 operation: "ai-chat",
                 userId,
                 systemPrompt,
-                prompt: recent
-                    .map((message) => `${message.role === AIChatRole.USER ? "User" : "Assistant"}: ${message.content}`)
-                    .join("\n\n"),
+                prompt: formatMemory(memory.summary, memory.recent),
                 temperature: 0.35,
                 maxTokens: 1_500,
             });
@@ -177,15 +172,12 @@ export class AIChatService {
             },
             select: { id: true, role: true, content: true, createdAt: true },
         });
-        yield { type: "start" as const, conversation, userMessage };
-
-        const recent = await prisma.aIChatMessage.findMany({
-            where: { conversationId: conversation.id },
-            orderBy: { createdAt: "desc" },
-            take: memoryMessageLimit,
-            select: { role: true, content: true },
-        });
-        recent.reverse();
+        const memory = await this.memory(userId, conversation.id);
+        yield {
+            type: "start" as const,
+            conversation: { ...conversation, summary: memory.summary },
+            userMessage,
+        };
         let content = "";
 
         try {
@@ -196,9 +188,7 @@ export class AIChatService {
                 operation: "ai-chat",
                 userId,
                 systemPrompt,
-                prompt: recent
-                    .map((item) => `${item.role === AIChatRole.USER ? "User" : "Assistant"}: ${item.content}`)
-                    .join("\n\n"),
+                prompt: formatMemory(memory.summary, memory.recent),
                 temperature: 0.35,
                 maxTokens: 1_500,
             })) {
@@ -260,9 +250,87 @@ export class AIChatService {
             throw new AIChatAccessError("AI chat is not enabled for this account.");
         }
     }
+
+    private async memory(userId: string, conversationId: string) {
+        const conversation = await prisma.aIChatConversation.findFirst({
+            where: { id: conversationId, userId },
+            select: {
+                summary: true,
+                summarizedMessageCount: true,
+                _count: { select: { messages: true } },
+            },
+        });
+        if (!conversation) throw new AIChatAccessError("Conversation not found.");
+
+        const olderMessageCount = Math.max(0, conversation._count.messages - memoryMessageLimit);
+        let summary = conversation.summary;
+        if (
+            olderMessageCount > 0 &&
+            olderMessageCount - conversation.summarizedMessageCount >= summaryRefreshInterval
+        ) {
+            const olderMessages = await prisma.aIChatMessage.findMany({
+                where: { conversationId },
+                orderBy: { createdAt: "asc" },
+                take: olderMessageCount,
+                select: { role: true, content: true },
+            });
+            try {
+                const response = await this.gateway.generate({
+                    operation: "ai-chat-summary",
+                    userId,
+                    systemPrompt:
+                        "Summarize this conversation memory faithfully and concisely. Preserve user facts, preferences, decisions, unresolved questions, and important advice. Do not add facts.",
+                    prompt: [
+                        summary ? `Previous summary:\n${summary}` : "",
+                        "Conversation messages:",
+                        ...olderMessages.map((item) =>
+                            `${item.role === AIChatRole.USER ? "User" : "Assistant"}: ${item.content}`
+                        ),
+                    ].filter(Boolean).join("\n\n"),
+                    temperature: 0.1,
+                    maxTokens: 500,
+                });
+                summary = response.text.trim();
+                await prisma.aIChatConversation.update({
+                    where: { id: conversationId },
+                    data: {
+                        summary,
+                        summarizedMessageCount: olderMessageCount,
+                    },
+                });
+            } catch (error) {
+                logger.warn(
+                    { err: error, userId, conversationId },
+                    "AI chat memory summarization failed; using existing memory",
+                );
+            }
+        }
+
+        const recent = await prisma.aIChatMessage.findMany({
+            where: { conversationId },
+            orderBy: { createdAt: "desc" },
+            take: memoryMessageLimit,
+            select: { role: true, content: true },
+        });
+        recent.reverse();
+        return { summary, recent };
+    }
 }
 
 function titleFrom(message: string) {
     const title = message.replace(/\s+/gu, " ").trim();
     return title.length > 60 ? `${title.slice(0, 57)}…` : title;
+}
+
+function formatMemory(
+    summary: string | null,
+    recent: Array<{ role: AIChatRole; content: string }>,
+) {
+    return [
+        summary ? `Earlier conversation summary:\n${summary}` : "",
+        "Recent conversation:",
+        ...recent.map((item) =>
+            `${item.role === AIChatRole.USER ? "User" : "Assistant"}: ${item.content}`
+        ),
+    ].filter(Boolean).join("\n\n");
 }

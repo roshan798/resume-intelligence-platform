@@ -126,6 +126,8 @@ model AIChatConversation {
   id        String   @id @default(uuid())
   userId    String
   title     String
+  summary   String?  @db.Text
+  summarizedMessageCount Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

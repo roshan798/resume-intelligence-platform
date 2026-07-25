@@ -57,6 +57,7 @@ export default async function AIChatPage() {
                     messageCount: conversation._count.messages,
                 }))}
                 initialConversationId={active?.id ?? null}
+                initialSummary={active?.summary ?? null}
                 initialMessages={(active?.messages ?? []).map((message) => ({
                     ...message,
                     createdAt: message.createdAt.toISOString(),
