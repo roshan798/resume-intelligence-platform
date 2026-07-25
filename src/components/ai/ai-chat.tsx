@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Bot, MessageSquarePlus, Pencil, Search, Send, Trash2, UserRound } from "lucide-react";
+import { Bot, Check, Copy, MessageSquarePlus, Pencil, Search, Send, Trash2, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,6 +40,7 @@ export function AIChat({
     const [pending, setPending] = useState(false);
     const [loadingConversation, setLoadingConversation] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
     const endRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -243,6 +244,18 @@ export function AIChat({
         ));
     }
 
+    async function copyMessage(item: ChatMessage) {
+        try {
+            await navigator.clipboard.writeText(item.content);
+            setCopiedMessageId(item.id);
+            window.setTimeout(() => {
+                setCopiedMessageId((current) => current === item.id ? null : current);
+            }, 2_000);
+        } catch {
+            setError("Unable to copy this response. Check your browser clipboard permissions.");
+        }
+    }
+
     return (
         <div className="grid min-h-[650px] border bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
             <aside className="flex min-h-0 flex-col border-b lg:border-r lg:border-b-0">
@@ -343,14 +356,37 @@ export function AIChat({
                                         <Bot aria-hidden="true" className="size-4" />
                                     </div>
                                 ) : null}
-                                <div className={cn(
-                                    "max-w-[85%] whitespace-pre-wrap border px-4 py-3 text-sm leading-6",
-                                    item.role === "USER" ? "bg-foreground text-background" : "bg-background",
-                                )}>
-                                    <ChatMarkdown
-                                        content={item.content}
-                                        inverse={item.role === "USER"}
-                                    />
+                                <div className="max-w-[85%]">
+                                    <div className={cn(
+                                        "whitespace-pre-wrap border px-4 py-3 text-sm leading-6",
+                                        item.role === "USER" ? "bg-foreground text-background" : "bg-background",
+                                    )}>
+                                        <ChatMarkdown
+                                            content={item.content}
+                                            inverse={item.role === "USER"}
+                                        />
+                                    </div>
+                                    {item.role === "ASSISTANT" && item.content ? (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="xs"
+                                            className="mt-1"
+                                            onClick={() => copyMessage(item)}
+                                            aria-label="Copy response">
+                                            {copiedMessageId === item.id ? (
+                                                <>
+                                                    <Check aria-hidden="true" />
+                                                    Copied
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy aria-hidden="true" />
+                                                    Copy
+                                                </>
+                                            )}
+                                        </Button>
+                                    ) : null}
                                 </div>
                                 {item.role === "USER" ? (
                                     <div className="flex size-8 shrink-0 items-center justify-center border">
