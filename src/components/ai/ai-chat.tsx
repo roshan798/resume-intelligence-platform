@@ -59,8 +59,10 @@ export function AIChat({
     const [pending, setPending] = useState(false);
     const [loadingConversation, setLoadingConversation] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [failedMessage, setFailedMessage] = useState<string | null>(null);
     const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
     const endRef = useRef<HTMLDivElement>(null);
+    const formRef = useRef<HTMLFormElement>(null);
     const conversationTokens = messages.reduce(
         (total, item) => total + (item.totalTokens ?? 0),
         0,
@@ -166,6 +168,11 @@ export function AIChat({
         setMessage("");
         setPending(true);
         setError(null);
+        setFailedMessage(null);
+        const originalConversationId = conversationId;
+        const contextBeforeSend = contextUsage;
+        const summaryBeforeSend = summary;
+        let persistedUserId: string | null = null;
 
         try {
             const response = await fetch("/api/ai/chat", {
@@ -203,6 +210,7 @@ export function AIChat({
                     if (event.type === "start") {
                         streamedConversation = event.conversation;
                         persistedUser = event.userMessage;
+                        persistedUserId = event.userMessage.id;
                         setConversationId(event.conversation.id);
                         setSummary(event.conversation.summary);
                         setContextUsage(event.context);
@@ -246,13 +254,33 @@ export function AIChat({
             });
         } catch (caught) {
             setMessages((current) => current.filter(
-                (item) => item.id !== optimistic.id && item.id !== streamingId,
+                (item) =>
+                    item.id !== optimistic.id &&
+                    item.id !== streamingId &&
+                    item.id !== persistedUserId,
             ));
             setError(caught instanceof Error ? caught.message : "Unable to send message.");
             setMessage(content);
+            setFailedMessage(content);
+            if (!originalConversationId) {
+                setConversationId(null);
+                setSummary(null);
+                setContextUsage({ totalMessages: 0, activeMessages: 0, summarizedMessages: 0, limit: 20 });
+            } else {
+                setSummary(summaryBeforeSend);
+                setContextUsage(contextBeforeSend);
+            }
         } finally {
             setPending(false);
         }
+    }
+
+    function retryFailedMessage() {
+        if (!failedMessage || pending) return;
+        setMessage(failedMessage);
+        setFailedMessage(null);
+        setError(null);
+        window.requestAnimationFrame(() => formRef.current?.requestSubmit());
     }
 
     async function removeConversation(id: string) {
@@ -550,7 +578,7 @@ export function AIChat({
                     </div>
                 </ScrollArea>
 
-                <form onSubmit={send} className="border-t p-4">
+                <form ref={formRef} onSubmit={send} className="border-t p-4">
                     <div className="mx-auto flex max-w-3xl items-end gap-3">
                         <textarea
                             value={message}
@@ -571,7 +599,20 @@ export function AIChat({
                             <Send aria-hidden="true" />
                         </Button>
                     </div>
-                    {error ? <p role="alert" className="mx-auto mt-2 max-w-3xl text-sm text-destructive">{error}</p> : null}
+                    {error ? (
+                        <div role="alert" className="mx-auto mt-2 flex max-w-3xl flex-wrap items-center gap-3 text-sm text-destructive">
+                            <span>{error}</span>
+                            {failedMessage ? (
+                                <Button
+                                    type="button"
+                                    size="xs"
+                                    variant="outline"
+                                    onClick={retryFailedMessage}>
+                                    Retry
+                                </Button>
+                            ) : null}
+                        </div>
+                    ) : null}
                     <p className="mx-auto mt-2 max-w-3xl text-xs text-muted-foreground">
                         AI can make mistakes. Verify important career and application details.
                     </p>
