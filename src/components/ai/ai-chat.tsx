@@ -306,6 +306,8 @@ export function AIChat({
         }
     }
 
+    const conversationGroups = groupConversations(conversations);
+
     return (
         <div className="relative grid min-h-[650px] border bg-card lg:grid-cols-[280px_minmax(0,1fr)]">
             {sidebarOpen ? (
@@ -364,39 +366,46 @@ export function AIChat({
                 </div>
                 <ScrollArea className="h-52 lg:h-[590px]">
                     <div className="space-y-1 p-2">
-                        {conversations.map((conversation) => (
-                            <div
-                                key={conversation.id}
-                                className={cn(
-                                    "group flex items-center border",
-                                    conversation.id === conversationId && "bg-muted",
-                                )}>
-                                <button
-                                    type="button"
-                                    className="min-w-0 flex-1 px-3 py-3 text-left"
-                                    onClick={() => selectConversation(conversation.id)}>
-                                    <span className="block truncate text-sm font-medium">{conversation.title}</span>
-                                    <span className="mt-1 block text-xs text-muted-foreground">
-                                        {conversation.messageCount} messages
-                                    </span>
-                                </button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    className="opacity-60 hover:opacity-100"
-                                    aria-label={`Rename ${conversation.title}`}
-                                    onClick={() => renameConversation(conversation)}>
-                                    <Pencil aria-hidden="true" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    className="mr-2 opacity-60 hover:opacity-100"
-                                    aria-label={`Delete ${conversation.title}`}
-                                    onClick={() => removeConversation(conversation.id)}>
-                                    <Trash2 aria-hidden="true" />
-                                </Button>
-                            </div>
+                        {conversationGroups.map((group) => (
+                            <section key={group.label} className="space-y-1">
+                                <h3 className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                    {group.label}
+                                </h3>
+                                {group.conversations.map((conversation) => (
+                                    <div
+                                        key={conversation.id}
+                                        className={cn(
+                                            "group flex items-center border",
+                                            conversation.id === conversationId && "bg-muted",
+                                        )}>
+                                        <button
+                                            type="button"
+                                            className="min-w-0 flex-1 px-3 py-3 text-left"
+                                            onClick={() => selectConversation(conversation.id)}>
+                                            <span className="block truncate text-sm font-medium">{conversation.title}</span>
+                                            <span className="mt-1 block text-xs text-muted-foreground">
+                                                {conversation.messageCount} messages
+                                            </span>
+                                        </button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            className="opacity-60 hover:opacity-100"
+                                            aria-label={`Rename ${conversation.title}`}
+                                            onClick={() => renameConversation(conversation)}>
+                                            <Pencil aria-hidden="true" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            className="mr-2 opacity-60 hover:opacity-100"
+                                            aria-label={`Delete ${conversation.title}`}
+                                            onClick={() => removeConversation(conversation.id)}>
+                                            <Trash2 aria-hidden="true" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </section>
                         ))}
                         {conversations.length === 0 ? (
                             <p className="p-4 text-center text-sm text-muted-foreground">
@@ -570,4 +579,26 @@ export function AIChat({
             </section>
         </div>
     );
+}
+
+function groupConversations(conversations: Conversation[]) {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1_000;
+    const startOfWeek = startOfToday - 7 * 24 * 60 * 60 * 1_000;
+    const groups = [
+        { label: "Today", conversations: [] as Conversation[] },
+        { label: "Yesterday", conversations: [] as Conversation[] },
+        { label: "Previous 7 days", conversations: [] as Conversation[] },
+        { label: "Older", conversations: [] as Conversation[] },
+    ];
+
+    for (const conversation of conversations) {
+        const timestamp = new Date(conversation.updatedAt).getTime();
+        if (timestamp >= startOfToday) groups[0].conversations.push(conversation);
+        else if (timestamp >= startOfYesterday) groups[1].conversations.push(conversation);
+        else if (timestamp >= startOfWeek) groups[2].conversations.push(conversation);
+        else groups[3].conversations.push(conversation);
+    }
+    return groups.filter((group) => group.conversations.length > 0);
 }
