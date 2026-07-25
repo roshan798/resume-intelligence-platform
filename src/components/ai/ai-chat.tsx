@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Bot, Check, Copy, Menu, MessageSquarePlus, Pencil, Search, Send, Trash2, UserRound, X } from "lucide-react";
+import { ArrowDown, Bot, Check, Copy, Menu, MessageSquarePlus, Pencil, Search, Send, Trash2, UserRound, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -81,6 +81,7 @@ export function AIChat({
     const [search, setSearch] = useState("");
     const [searching, setSearching] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     const [pending, setPending] = useState(false);
     const [loadingConversation, setLoadingConversation] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -104,6 +105,7 @@ export function AIChat({
             const distanceFromBottom =
                 viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
             autoFollowRef.current = distanceFromBottom < 96;
+            setShowScrollToBottom(!autoFollowRef.current);
         };
         viewport.addEventListener("scroll", trackPosition, { passive: true });
         return () => viewport.removeEventListener("scroll", trackPosition);
@@ -172,6 +174,7 @@ export function AIChat({
         if (id === conversationId || loadingConversation) return;
         setLoadingConversation(true);
         autoFollowRef.current = true;
+        setShowScrollToBottom(false);
         setError(null);
         try {
             const response = await fetch(`/api/ai/chat/${id}`);
@@ -217,6 +220,7 @@ export function AIChat({
         const content = message.trim();
         if (!content || pending) return;
         autoFollowRef.current = true;
+        setShowScrollToBottom(false);
 
         const optimistic: ChatMessage = {
             id: `pending-${Date.now()}`,
@@ -381,6 +385,15 @@ export function AIChat({
         window.requestAnimationFrame(() => formRef.current?.requestSubmit());
     }
 
+    function scrollToBottom() {
+        autoFollowRef.current = true;
+        setShowScrollToBottom(false);
+        endRef.current?.scrollIntoView({
+            block: "end",
+            behavior: "smooth",
+        });
+    }
+
     async function changeResponseStyle(nextStyle: ResponseStyle) {
         const previous = responseStyle;
         setResponseStyle(nextStyle);
@@ -510,6 +523,7 @@ export function AIChat({
                         variant="outline"
                         onClick={() => {
                             autoFollowRef.current = true;
+                            setShowScrollToBottom(false);
                             setConversationId(null);
                             setMessages([]);
                             setSummary(null);
@@ -608,8 +622,9 @@ export function AIChat({
                         </span>
                     ) : null}
                 </div>
-                <ScrollArea className="h-130 flex-1">
-                    <div className="mx-auto max-w-3xl space-y-6 p-5 md:p-8">
+                <div className="relative min-h-0 flex-1">
+                    <ScrollArea className="h-130 lg:h-full">
+                        <div className="mx-auto max-w-3xl space-y-6 p-5 md:p-8">
                         {contextUsage.totalMessages > 0 ? (
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                                 <span>
@@ -719,9 +734,21 @@ export function AIChat({
                                 Thinking…
                             </div>
                         ) : null}
-                        <div ref={endRef} />
-                    </div>
-                </ScrollArea>
+                            <div ref={endRef} />
+                        </div>
+                    </ScrollArea>
+                    {showScrollToBottom ? (
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 shadow-lg"
+                            onClick={scrollToBottom}>
+                            <ArrowDown aria-hidden="true" />
+                            Scroll to bottom
+                        </Button>
+                    ) : null}
+                </div>
 
                 <form ref={formRef} onSubmit={send} className="border-t p-4">
                     <div className="mx-auto mb-3 grid max-w-3xl gap-2 sm:grid-cols-2">
