@@ -8,6 +8,7 @@ import { AIProviderFactory } from "../factory/ai-provider.factory";
 import { AISettingsService } from "./ai-settings.service";
 import type { GenerateTextRequest } from "../types/generate-text-request";
 import type { GenerateTextResponse } from "../types/generate-text-response";
+import type { GenerateTextStreamEvent } from "../types/generate-text-stream-event";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -93,6 +94,69 @@ export class AIGatewayService {
         }
 
         logger.error({ err: lastError, requestId, operation }, "All AI providers failed");
+        throw lastError instanceof Error ? lastError : new Error("No configured AI provider is available.");
+    }
+
+    async *stream(request: GenerateTextRequest): AsyncGenerator<GenerateTextStreamEvent> {
+        const requestId = request.requestId ?? randomUUID();
+        const operation = request.operation ?? "unspecified";
+        const policy = request.userId
+            ? await this.settings.getExecutionPolicy(request.userId, operation)
+            : null;
+        const selectedProvider = policy?.featureModel?.provider ?? policy?.preferredProvider;
+        const preferred = selectedProvider
+            ? selectedProvider === "GEMINI" ? AIProviderEnum.GEMINI : AIProviderEnum.GROQ
+            : AIConfig.defaultProvider === "gemini" ? AIProviderEnum.GEMINI : AIProviderEnum.GROQ;
+        const fallback = preferred === AIProviderEnum.GROQ ? AIProviderEnum.GEMINI : AIProviderEnum.GROQ;
+        const providers = policy?.fallbackEnabled === false ? [preferred] : [preferred, fallback];
+        const effectiveMaxTokens = Math.min(
+            request.maxTokens ?? policy?.perRequestMaxTokens ?? 4_096,
+            policy?.perRequestMaxTokens ?? Number.POSITIVE_INFINITY,
+        );
+        let lastError: unknown;
+
+        for (const provider of providers) {
+            let emitted = false;
+            const startedAt = Date.now();
+            try {
+                for await (const event of AIProviderFactory.create(provider).generateTextStream({
+                    ...request,
+                    maxTokens: effectiveMaxTokens,
+                    model:
+                        policy?.featureModel?.provider.toLocaleLowerCase() === provider
+                            ? policy.featureModel.model
+                            : undefined,
+                })) {
+                    if (event.type === "delta") emitted = true;
+                    if (event.type === "done" && request.userId) {
+                        await this.settings.recordUsage({
+                            userId: request.userId,
+                            operation,
+                            provider: event.response.provider === "GEMINI" ? "GEMINI" : "GROQ",
+                            modelUsed: event.response.model,
+                            promptTokens: event.response.usage?.promptTokens ?? 0,
+                            completionTokens: event.response.usage?.completionTokens ?? 0,
+                            totalTokens: event.response.usage?.totalTokens ?? 0,
+                            estimatedCostMicros: 0,
+                            requestId,
+                        });
+                    }
+                    yield event;
+                }
+                logger.info(
+                    { requestId, operation, provider, durationMs: Date.now() - startedAt },
+                    "AI streaming generation completed",
+                );
+                return;
+            } catch (error) {
+                lastError = error;
+                logger.warn(
+                    { err: error, requestId, operation, provider, emitted },
+                    "AI streaming generation failed",
+                );
+                if (emitted) break;
+            }
+        }
         throw lastError instanceof Error ? lastError : new Error("No configured AI provider is available.");
     }
 }

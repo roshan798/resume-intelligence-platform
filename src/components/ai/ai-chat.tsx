@@ -76,7 +76,17 @@ export function AIChat({
             content,
             createdAt: new Date().toISOString(),
         };
-        setMessages((current) => [...current, optimistic]);
+        const streamingId = `streaming-${Date.now()}`;
+        setMessages((current) => [
+            ...current,
+            optimistic,
+            {
+                id: streamingId,
+                role: "ASSISTANT",
+                content: "",
+                createdAt: new Date().toISOString(),
+            },
+        ]);
         setMessage("");
         setPending(true);
         setError(null);
@@ -87,34 +97,69 @@ export function AIChat({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ conversationId, message: content }),
             });
-            const body = await response.json() as {
-                message?: string;
-                conversation?: { id: string; title: string };
-                userMessage?: ChatMessage;
-                assistantMessage?: ChatMessage;
-            };
-            if (!response.ok || !body.conversation || !body.userMessage || !body.assistantMessage) {
-                throw new Error(body.message ?? "Unable to send message.");
+            if (!response.ok || !response.body) {
+                const body = await response.json().catch(() => null) as { message?: string } | null;
+                throw new Error(body?.message ?? "Unable to send message.");
             }
-            const activeId = body.conversation.id;
-            setConversationId(activeId);
-            setMessages((current) => [
-                ...current.filter((item) => item.id !== optimistic.id),
-                body.userMessage!,
-                body.assistantMessage!,
-            ]);
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            let streamedConversation: { id: string; title: string } | null = null;
+            let persistedUser: ChatMessage | null = null;
+
+            while (true) {
+                const { value, done } = await reader.read();
+                buffer += decoder.decode(value, { stream: !done });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() ?? "";
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    const event = JSON.parse(line) as
+                        | { type: "start"; conversation: { id: string; title: string }; userMessage: ChatMessage }
+                        | { type: "delta"; text: string }
+                        | { type: "done"; assistantMessage: ChatMessage }
+                        | { type: "error"; message: string };
+                    if (event.type === "start") {
+                        streamedConversation = event.conversation;
+                        persistedUser = event.userMessage;
+                        setConversationId(event.conversation.id);
+                        setMessages((current) => current.map((item) =>
+                            item.id === optimistic.id ? event.userMessage : item
+                        ));
+                    } else if (event.type === "delta") {
+                        setMessages((current) => current.map((item) =>
+                            item.id === streamingId
+                                ? { ...item, content: `${item.content}${event.text}` }
+                                : item
+                        ));
+                    } else if (event.type === "done") {
+                        setMessages((current) => current.map((item) =>
+                            item.id === streamingId ? event.assistantMessage : item
+                        ));
+                    } else {
+                        throw new Error(event.message);
+                    }
+                }
+                if (done) break;
+            }
+            if (!streamedConversation || !persistedUser) {
+                throw new Error("The chat stream ended before the response was saved.");
+            }
+            const completedConversation = streamedConversation;
             setConversations((current) => {
-                const existing = current.find((item) => item.id === activeId);
+                const existing = current.find((item) => item.id === completedConversation.id);
                 const updated: Conversation = {
-                    id: activeId,
-                    title: body.conversation!.title,
+                    id: completedConversation.id,
+                    title: completedConversation.title,
                     updatedAt: new Date().toISOString(),
                     messageCount: (existing?.messageCount ?? 0) + 2,
                 };
-                return [updated, ...current.filter((item) => item.id !== activeId)];
+                return [updated, ...current.filter((item) => item.id !== completedConversation.id)];
             });
         } catch (caught) {
-            setMessages((current) => current.filter((item) => item.id !== optimistic.id));
+            setMessages((current) => current.filter(
+                (item) => item.id !== optimistic.id && item.id !== streamingId,
+            ));
             setError(caught instanceof Error ? caught.message : "Unable to send message.");
             setMessage(content);
         } finally {
